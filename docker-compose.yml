@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  whispers:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./uploads:/app/uploads
+    environment:
+      - DEBUG=false
+      - APP_NAME=Whispers of the Wires
+    restart: unless-stopped
