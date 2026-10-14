@@ -1,220 +1,154 @@
 # 🎵 Whispers of the Wires
+### Emotion-Trajectory-Guided, Controllable AI Music Composition Studio
 
-**AI-Based Music Composer** — Transform your emotions into personalized musical compositions.
+> **Status: Architecture/phase roadmap approved; implementation and validation are in progress.**
+> This repository currently contains an earlier Streamlit/MusicGen prototype on `main`.
+> The `original` branch is the agreed **design baseline** for a new phased implementation.
+> Planned features below must **not** be interpreted as completed or tested functionality.
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-red.svg)](https://streamlit.io)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![MusicGen](https://img.shields.io/badge/AI-MusicGen%20(Meta)-purple.svg)](https://huggingface.co/facebook/musicgen-small)
+**Project goal:** Given a short story, mood, or context, propose a *time-varying emotional trajectory*, translate it into a structured musical blueprint, generate editable multitrack instrumental MIDI, render audio, and allow localized musical edits while protecting untouched events. Evaluate both musical constraints and perceived emotion through reproducible tests and listener feedback.
 
----
+**Team & constraints:** one student developer; local CPU; **Kaggle cloud GPU available intermittently**, not a continuously available API; development-first, noncommercial academic prototype; initial English-only instrumental generation.
 
-## ✨ Features
+## Why this project is different
+A text-to-audio prompt wrapper alone is not a research contribution. This project investigates:
+1. **Explicit emotional trajectories:** e.g. nervous → confident → relieved, with independently editable bar regions.
+2. **Constrained symbolic music plans:** key, tempo, instrument roles, section boundaries and reproducible note events.
+3. **Selective bar-level edits:** edit harmony in bars 5–8 without changing melody or other locked events, verified from MIDI data.
+4. **Transparent evaluation:** structural checks, timing/density measures, candidate comparisons and *human* ratings of emotion (not invented automatic emotion accuracy).
 
-| Feature | Description |
-|---------|-------------|
-| 🎼 **AI Music Generation** | Meta's MusicGen model (free, no API key) |
-| 🎯 **Mood Analysis** | Multi-dimensional emotion recognition (VAD model) |
-| 🎹 **MIDI Export** | Download compositions for DAW editing |
-| 📊 **Visualizations** | Real-time waveform and spectrogram |
-| 💾 **Generation History** | Save and revisit your creations |
-| ❤️ **Favorites** | Bookmark your best compositions |
-| 🎛️ **Advanced Controls** | Tempo, key, genre, duration, VAD sliders |
-| 🌙 **Dark Theme** | Premium startup-grade UI |
-| 🔓 **100% Free** | No API keys, no subscriptions, no limits |
+### Example
+Prompt: “Compose music for an anxious student before an exam, then confidence, then relief.”
+Result: a proposed 12-bar composition plan with three contiguous 4-bar sections at 96 BPM in 4/4 (30 seconds), a melody/harmony/bass/drums arrangement, output MIDI and rendered WAV, and the ability to revise one section without rewriting others. Mood/music associations are **heuristics to validate**, not universal laws.
 
----
+## Design: end-to-end flow
+```mermaid
+flowchart TD
+ A["User: prompt + preferences"] --> B["Streamlit Studio"]
+ B --> C["FastAPI / Pydantic contracts"]
+ C --> D["Text emotion classifier (optional) + user review"]
+ D --> E["Emotion trajectory planner"]
+ E --> F["Validated music blueprint"]
+ F --> G{"Generation backend"}
+ G --> H["Local deterministic symbolic fallback"]
+ G --> I["Kaggle MIDI-GPT yellow_medium batch job"]
+ H --> J["Standard MIDI + provenance"]
+ I --> K["Run manifest + checksum + generated MIDI"]
+ K --> J
+ J --> L["MIDI-to-WAV renderer"]
+ J --> M["Constraint + edit-preservation evaluator"]
+ L --> N["Playback, timeline editor, export, versions"]
+ M --> N
+ N --> C
+```
 
-## 🚀 Quick Start
+**Fundamental distinction:** MIDI tracks are editable symbolic parts; neural audio generators produce audio that generally cannot guarantee exact note-level preservation. An ACE-Step neural audio pathway is an **optional later extension**, not the MVP dependency.
 
-### Prerequisites
+## Initial model and technology decisions
 
-- **Python 3.8+** (3.10+ recommended)
-- **pip** package manager
-- **ffmpeg** (optional, for audio processing)
+| Responsibility | Planned implementation | Runtime/qualification |
+|---|---|---|
+| Text emotion classifier | `j-hartmann/emotion-english-distilroberta-base` | Optional local CPU NLP signal; emotion categories are not guaranteed musical-emotion labels |
+| Emotion-to-music plan | `RuleBasedTrajectoryPlannerV1` + user review | Local CPU, explainable and deterministic baseline |
+| Primary AI symbolic generator | MIDI-GPT `yellow_medium` (Metacreation) | Kaggle notebook on available GPU; has shorter 4/8-bar contexts, use segment assembly |
+| Always-available fallback | `RuleBasedComposerV1` | Local CPU; provenance must show fallback |
+| MIDI rendering | pretty_midi + FluidSynth and properly licensed SoundFont | Local CPU; WAV exported when synthesis assets available |
+| Neural audio enhancement | ACE-Step 1.5 `acestep-v15-turbo` | Optional extension after GPU/memory/license feasibility test |
+| API + schema | Python 3.11, FastAPI, Pydantic v2 | Local machine |
+| App UI | Streamlit | Reuse elements of existing UI where safe |
+| Persistence | SQLite + checksummed filesystem artifacts | No Redis or always-on infrastructure required |
+| Verification | pytest, Ruff, optional mypy, GitHub Actions | No model-download requirement in CI |
 
-### Installation
+**Licenses:** repository MIT covers only code owned here. Checkpoint, training music, SoundFont and other third-party licenses apply **separately**. Published MIDI-GPT weights are labeled CC BY-NC 4.0; do not assume unrestricted commercial rights. Never upload copyrighted music without permission. No guaranteed copyright-free output claims.
 
+## System boundaries and contracts
+All exchanges use versioned Pydantic/JSON contracts; reject malformed requests explicitly.
+
+### Canonical music blueprint (illustrative)
+```json
+{
+  "schema_version":"1.0","request_id":"demo-001",
+  "prompt":"Nervous then confident then relieved",
+  "language":"en","mode":"instrumental",
+  "tempo_bpm":96,"time_signature":{"numerator":4,"denominator":4},
+  "key":"C_major","total_bars":12,
+  "sections":[
+    {"id":"A","start_bar":0,"bar_count":4,"mood":"nervous","valence":-0.6,"arousal":0.7},
+    {"id":"B","start_bar":4,"bar_count":4,"mood":"confident","valence":0.5,"arousal":0.8},
+    {"id":"C","start_bar":8,"bar_count":4,"mood":"relieved","valence":0.7,"arousal":0.3}
+  ],
+  "tracks":[
+    {"id":"melody","program":0},
+    {"id":"harmony","program":48},
+    {"id":"bass","program":32},
+    {"id":"drums","is_drum":true}
+  ],
+  "generation":{"provider":"midigpt","checkpoint":"yellow_medium","seed":42,"max_candidates":2}
+}
+```
+*Bars are zero-indexed; `end_bar_exclusive` is exclusive; initial scope 4/4 and 60–160 BPM; all sections contiguous, bounded, non-overlapping. Valence/arousal values are illustrative targets.*
+
+### Module contracts
+| Module | In | Out | Failure behavior |
+|---|---|---|---|
+| EmotionAnalyzer | prompt, language | label probabilities + review flags | no invented confidence |
+| TrajectoryPlanner | prompt analysis, target bars | ordered sections | reject ambiguous/invalid layout |
+| BlueprintBuilder | sections and preferences | validated MusicBlueprint | typed validation error |
+| SymbolicComposer | blueprint, provider, seed | MIDI + provenance | explicit error/fallback; never relabel fallback AI |
+| CloudJobAdapter | manifest | Kaggle run reference/status | timeout/unavailable must remain visible |
+| ArtifactImporter | generated files/checksums | verified project artifacts | quarantine mismatched files |
+| MusicRenderer | MIDI + synth config | WAV | reject missing synth dependencies |
+| SelectiveEditor | version + track/region | new version + MIDI | reject changed locked events |
+| Evaluator | MIDI, WAV, plan | metrics + warnings | unsupported metric marked unavailable |
+| VersionRepository | versioned outputs | immutable history | never silently overwrite |
+
+### API targets
+`GET /health`, `POST /api/v1/analyze`, `POST /api/v1/blueprints`, `POST /api/v1/jobs`, `GET /api/v1/jobs/{id}`, `POST /api/v1/jobs/{id}/import`, `GET /api/v1/compositions/{id}`, `POST /api/v1/compositions/{id}/edits`, `POST /api/v1/evaluations`. Exact availability is **phase-dependent**.
+
+A cloud run produces `manifest.json`, `composition.mid`, `generation_metrics.json`, `run_environment.json`, `generation.log`. Importer must validate request ID, schema, model identity, checksums and output integrity. Kaggle is **batch execution only**; no promise of free unlimited real-time inference.
+
+## Phase-by-phase branches and delivery gates
+**Branch policy:** `original` = documented design baseline; each `phase-0N-*` is built from the previous accepted phase (not from stale `main`); changes are pushed to their own branch for human testing. The maintainer decides whether/when to merge PRs into `original`. No auto-merge, no force-push of existing work.
+
+| Phase / planned branch | Deliverables | Minimum acceptance gate |
+|---|---|---|
+| **1** `phase-01-foundation` | Contracts, API health, deterministic local MIDI composer, automated tests, Kaggle smoke-test notebook, artifact schema | valid 4-track MIDI and passing tests; actual Kaggle proof only after remote run |
+| **2** `phase-02-emotion` | English mood parser, trajectory editing/review, structured music blueprint | deterministic valid, contiguous 3-section trajectory; edge cases tested |
+| **3** `phase-03-generation` | 4/8-bar generation adapter, multitrack orchestration, renderer, artifact import | rendered MIDI/WAV; real MIDI-GPT result after Kaggle test |
+| **4** `phase-04-studio` | Streamlit create/plan/listen/export, selective MIDI edit, version history | locked events unchanged and undo works |
+| **5** `phase-05-evaluation` | theory/rhythm/signal metrics, test protocol, listener-rating storage, baseline comparisons | reproducible measured metrics, no unsupported accuracy claims |
+| **6** `phase-06-hardening` | robustness, validation, security, docs, optional neural-audio adapter behind feature flag | clean install/test, documented deployment limits and model terms |
+
+**Status at the creation of this baseline:** all phases **planned, not yet accepted**. Check the branch, PR checks and `docs/PHASE_TRACKER.md` on each phase for actual completion evidence.
+
+### MVP success criteria
+- A user can input an English context and review/edit three emotional sections.
+- Valid twelve-bar four-track MIDI can be generated via the fallback and, after Kaggle verification, MIDI-GPT; provenance is visible.
+- A MIDI file can be rendered as WAV and played.
+- Editing a selected track/bar range creates a new version **without changing locked note events** outside the selection.
+- Artifacts survive an application restart; invalid/corrupted imports are rejected.
+- Unit/integration tests pass in CI without GPU, and reproducible Kaggle evidence is logged separately.
+- Emotion alignment is assessed with blinded human feedback. Computational note density and velocities are *proxies*, not emotion accuracy.
+
+## Development and testing
+The default branch `main` currently hosts a *legacy* Streamlit/MusicGen prototype. Do not confuse existing commands or marketing statements with the new phased pipeline. To try that legacy app before merging new branches:
 ```bash
-# 1. Extract or clone the project
+git clone https://github.com/shanmukhdatta/whispers_of_the_wires.git
 cd whispers_of_the_wires
-
-# 2. Create virtual environment (recommended)
-python -m venv venv
-
-# 3. Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-
-# 4. Install dependencies
+python -m venv .venv
+# Activate .venv for your OS
 pip install -r requirements.txt
-```
-
-> **Note:** First run will download Meta's MusicGen model (~1.2GB) from Hugging Face automatically. No API key needed!
-
-### Running the App
-
-```bash
-# Method 1: Using the runner script
-python run.py
-
-# Method 2: Direct Streamlit
 streamlit run app/main.py
-
-# Method 3: Direct Python
-python app.py
 ```
+New branches must update this section with their **actually tested** commands and provide instructions for CPU-only tests, Kaggle notebook setup and evidence collection. Avoid committing API credentials, model weights, datasets and generated audio.
 
-The app opens at **http://localhost:8501**
+## Research plan
+Compare (a) single global-mood baseline, (b) explicit trajectory without selective editing, (c) trajectory plus constrained editing. Match generator and budget, report held-out prompts, listener ratings with uncertainty, segment-level perceived mood, event preservation, latency and failure rates. Do not assert quality gains until measured.
 
----
+## Reference materials
+The proposal is based on three project files: *AI-Based Music Composition System Document*, *AI-Based Music Composition 8-week Plan*, and *AI-Based Music App Knowledge Reference Guide*. These define the original mood/context purpose, Streamlit delivery, research/model exploration, evaluation and testing requirements. Technical decisions above are an implementation-oriented revision, not claims that the older documents were already implemented.
 
-## 🎨 Usage Guide
+Research links: [MIDI-GPT](https://github.com/metacreation-lab/MIDI-GPT), [ACE-Step](https://github.com/ace-step/ACE-Step), [pretty_midi](https://github.com/craffel/pretty-midi), [Kaggle API](https://github.com/Kaggle/kaggle-api).
 
-### 1. Describe Your Mood
-Type something like:
-- "peaceful rainy morning with coffee"
-- "energetic workout session"
-- "melancholic piano piece"
-
-### 2. Or Select a Preset
-Choose from 8 curated mood presets:
-- ☀️ Peaceful Morning
-- 🌙 Late Night Work
-- 💪 Workout Energy
-- 🌧️ Rainy Day
-- 🎉 Celebration
-- 🧘 Deep Focus
-- 🎨 Creative Flow
-- 💕 Romantic Evening
-
-### 3. Fine-tune Parameters
-- **Valence** — Positivity (-1 to +1)
-- **Arousal** — Energy level (-1 to +1)
-- **Dominance** — Intensity (-1 to +1)
-- **Genre** — 20 genres available
-- **Tempo** — 40 to 200 BPM
-- **Duration** — 5 to 60 seconds
-
-### 4. Generate & Enjoy
-Click **"✨ Generate Music"** and watch the AI compose!
-
-### 5. Export Your Music
-- 🎹 **MIDI** — For DAW editing (FL Studio, Ableton, Logic)
-- 💾 **WAV** — High-quality audio
-- 📊 **Visualizations** — Waveform & spectrogram
-
----
-
-## 🏗️ Architecture
-
-```
-whispers_of_the_wires/
-├── app/
-│   ├── main.py              # Main Streamlit application
-│   ├── utils/
-│   │   ├── emotion_analyzer.py   # NLP + VAD emotion analysis
-│   │   ├── music_generator.py      # MusicGen AI + Procedural synthesis
-│   │   ├── visualizer.py          # Audio visualizations
-│   │   └── session_manager.py     # Session state management
-│   └── assets/
-│       └── css/
-│           └── style.css    # Premium dark theme (11KB)
-├── config/
-│   └── __init__.py         # Configuration & constants
-├── tests/
-│   └── test_app.py         # Test suite
-├── requirements.txt         # Python dependencies
-├── run.py                   # Entry point script
-├── setup.py                 # Package setup
-├── Dockerfile               # Container image
-├── docker-compose.yml       # Docker orchestration
-├── Makefile                 # Build commands
-├── README.md               # This file
-├── LICENSE                 # MIT License
-└── CHANGELOG.md            # Version history
-```
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technology | License |
-|-------|-----------|---------|
-| **Frontend** | Streamlit + Custom CSS | Apache 2.0 |
-| **AI Model** | MusicGen (Meta) | MIT (code) / CC-BY-NC 4.0 (weights) |
-| **Audio Processing** | numpy, scipy, soundfile | BSD/MIT |
-| **MIDI** | pretty_midi | MIT |
-| **Visualization** | matplotlib, SVG | PSF |
-| **Emotion Analysis** | Custom NLP + VAD | MIT |
-
-### AI Model Details
-
-**MusicGen** by Meta AI:
-- **Paper:** [Simple and Controllable Music Generation](https://arxiv.org/abs/2306.05284) (Copet et al., 2023)
-- **Model:** `facebook/musicgen-small` (300M parameters, ~1.2GB)
-- **Source:** [Hugging Face](https://huggingface.co/facebook/musicgen-small)
-- **License:** MIT (code), CC-BY-NC 4.0 (model weights)
-- **No API key required** — downloads automatically on first use
-
----
-
-## 🐳 Docker Deployment
-
-```bash
-# Build image
-docker build -t whispers-of-the-wires .
-
-# Run container
-docker run -p 8501:8501 whispers-of-the-wires
-
-# Or use docker-compose
-docker-compose up -d
-```
-
----
-
-## 🧪 Testing
-
-```bash
-# Run tests
-pytest tests/ -v
-
-# Run with coverage
-pytest tests/ -v --cov=app
-```
-
----
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 📄 License
-
-**MIT License** — Free for personal and commercial use.
-
-See [LICENSE](LICENSE) for full text.
-
----
-
-## 🙏 Acknowledgments
-
-- **Meta AI** — MusicGen model ([Paper](https://arxiv.org/abs/2306.05284))
-- **Hugging Face** — Model hosting & Transformers library
-- **Streamlit** — Amazing web framework
-- **Open-source community** — All the libraries that make this possible
-
----
-
-<div align="center">
-
-Built with 💜 using entirely **free and open-source** tools.
-
-**No API keys. No subscriptions. No limits.**
-
-</div>
+## Credits and terms
+This repository's code carries its own `LICENSE`; pretrained checkpoints and music assets carry separate conditions. Built as an academic, human-in-the-loop creative tool.
