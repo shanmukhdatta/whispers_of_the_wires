@@ -69,10 +69,11 @@ def main() -> None:
             if len(midi.instruments) < len(bp.tracks):
                 raise ValueError("Checkpoint did not generate expected track count")
             generated_bars = min(4, section.bar_count - offset)
-            source_total = 4 * 60 / midi.estimate_tempo() if midi.get_end_time() > 0 else 0
-            if source_total <= 0:
+            tempos = midi.get_tempo_changes()[1]
+            if midi.get_end_time() <= 0 or len(tempos) == 0 or tempos[0] <= 0:
                 raise ValueError("Invalid generated segment tempo")
-            scale = duration_bar / (source_total / 4)
+            source_bar_duration = 4 * 60 / float(tempos[0])
+            scale = duration_bar / source_bar_duration
             time_offset = (section.start_bar + offset) * duration_bar
             section_end = time_offset + generated_bars * duration_bar
             for index, role in enumerate(bp.tracks):
