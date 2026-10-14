@@ -1,7 +1,6 @@
 """Generation routing: explicit CPU baseline or staged Kaggle export; no silent fallback."""
 from __future__ import annotations
 
-import json
 import shutil
 import uuid
 from pathlib import Path
