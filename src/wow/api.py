@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
+from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
 from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
 
@@ -120,3 +121,40 @@ def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
     return FileResponse(str(path), filename=asset)
+
+
+class EvaluateRequest(BaseModel):
+    composition_id: str
+    version: int = Field(default=1, ge=1)
+
+
+@app.post("/api/v1/evaluations")
+def evaluate(request: EvaluateRequest) -> dict:
+    job = service().jobs.get(request.composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        folder = version_directory(service().root, request.composition_id, request.version)
+        blueprint = MusicBlueprint.model_validate_json(
+            (version_directory(service().root, request.composition_id, 1)
+             / "blueprint.json").read_text(encoding="utf-8"))
+        return evaluate_files(folder / "composition.mid", folder / "composition.wav", blueprint)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/feedback", status_code=201)
+def submit_feedback(rating: ListenerRating) -> dict:
+    job = service().jobs.get(rating.composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    if rating.version not in versions(service().root, rating.composition_id):
+        raise HTTPException(status_code=404, detail="Version not found")
+    return FeedbackStore(service().root).add(rating)
+
+
+@app.get("/api/v1/feedback/summary/{composition_id}")
+def feedback_summary(composition_id: str) -> dict:
+    if service().jobs.get(composition_id) is None:
+        raise HTTPException(status_code=404, detail="Composition not found")
+    return FeedbackStore(service().root).summarize(composition_id)
