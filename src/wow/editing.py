@@ -54,9 +54,9 @@ def selective_edit(original: pretty_midi.PrettyMIDI, blueprint: MusicBlueprint,
     known = {track.id for track in blueprint.tracks}
     if not set(request.track_ids).issubset(known):
         raise ValueError("Unknown track ID")
-    if any(t.is_drum for t in blueprint.tracks if t.id in request.track_ids):
-        if request.operation == "transpose_up":
-            raise ValueError("Transposition not supported for drums")
+    if (request.operation == "transpose_up"
+            and any(t.is_drum for t in blueprint.tracks if t.id in request.track_ids)):
+        raise ValueError("Transposition not supported for drums")
     seconds_per_bar = 4 * 60 / blueprint.tempo_bpm
     start = request.start_bar * seconds_per_bar
     end = request.end_bar_exclusive * seconds_per_bar
