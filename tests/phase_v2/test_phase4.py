@@ -1,5 +1,4 @@
 """Selective edits must preserve notes in all locked tracks and bars."""
-import pretty_midi
 from fastapi.testclient import TestClient
 
 from wow.api import app
