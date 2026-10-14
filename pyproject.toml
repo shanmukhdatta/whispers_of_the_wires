@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whispers-wires"
+version = "0.1.0"
+description = "Emotion-trajectory controlled symbolic music composition"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.8,<3",
+  "uvicorn>=0.30,<1",
+  "pretty_midi>=0.2.10,<1",
+  "numpy>=1.26,<3",
+  "soundfile>=0.12,<1"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "httpx>=0.27,<1", "ruff>=0.7,<1"]
+studio = ["streamlit>=1.40,<2", "requests>=2.31,<3", "pandas>=2.2,<3"]
+emotion = ["transformers>=4.40,<5", "torch>=2.2", "safetensors>=0.4"]
+cloud = ["kaggle>=1.6,<2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/phase_v2"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
