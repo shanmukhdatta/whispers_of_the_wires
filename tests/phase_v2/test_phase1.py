@@ -1,5 +1,4 @@
 """Fast CPU-only contract tests, independent of GPU and pretrained weights."""
-import json
 
 import pretty_midi
 import pytest
