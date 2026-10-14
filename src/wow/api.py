@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
-from wow.generation import GenerationService
 from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
+from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
