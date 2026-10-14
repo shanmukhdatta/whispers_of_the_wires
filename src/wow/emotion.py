@@ -4,7 +4,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-
 EMOTIONS: dict[str, tuple[float, float, tuple[str, ...]]] = {
     "nervous": (-0.6, 0.7, ("nervous", "anxious", "fear", "worried", "tense")),
     "confident": (0.6, 0.75, ("confident", "brave", "courage", "hopeful", "determined")),
