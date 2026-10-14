@@ -1,18 +1,20 @@
-"""Phase 3: planning, local generation and explicit Kaggle artifact import."""
+"""Phase 4: local planning, generation, editable composition versions, downloads."""
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from wow.contracts import MusicBlueprint
+from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
 from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
 
-app = FastAPI(title="Whispers of the Wires API", version="0.3.0")
+app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
 
 def service() -> GenerationService:
@@ -29,21 +31,18 @@ class ImportRequest(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "version": "0.3.0"}
+    return {"status": "ok", "version": "0.4.0"}
 
 
 @app.post("/api/v1/analyze")
 def analyze(request: AnalyzeRequest) -> dict:
     signals = analyze_prompt(request.prompt)
-    return {
-        "segments": [
-            {"mood": s.mood, "valence": s.valence, "arousal": s.arousal,
-             "evidence": s.evidence, "needs_review": s.needs_review}
-            for s in signals
-        ],
-        "analysis_mode": "heuristic",
-        "note": "Mood stages are suggestions; edit before generation.",
-    }
+    return {"segments": [
+        {"mood": s.mood, "valence": s.valence, "arousal": s.arousal,
+         "evidence": s.evidence, "needs_review": s.needs_review}
+        for s in signals
+    ], "analysis_mode": "heuristic",
+        "note": "Mood stages are suggestions; edit before generation."}
 
 
 @app.post("/api/v1/blueprints", response_model=MusicBlueprint)
@@ -72,3 +71,52 @@ def import_cloud_job(job_id: str, request: ImportRequest) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/compositions/{composition_id}")
+def composition(composition_id: str) -> dict:
+    job = service().jobs.get(composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        history = versions(service().root, composition_id)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"job": job, "versions": history, "latest": history[-1] if history else None}
+
+
+@app.get("/api/v1/compositions/{composition_id}/versions")
+def history(composition_id: str) -> dict:
+    return composition(composition_id)
+
+
+@app.post("/api/v1/compositions/{composition_id}/edits")
+def edit(composition_id: str, request: EditRequest) -> dict:
+    job = service().jobs.get(composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        return create_edit_version(service().root, composition_id, request)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/compositions/{composition_id}/assets/{asset}")
+def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
+    if asset not in ("composition.mid", "composition.wav"):
+        raise HTTPException(status_code=404, detail="Unsupported asset")
+    job = service().jobs.get(composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        folder = version_directory(service().root, composition_id, version)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if version not in versions(service().root, composition_id):
+        raise HTTPException(status_code=404, detail="Unknown version")
+    path = folder / asset
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return FileResponse(str(path), filename=asset)
