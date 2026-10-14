@@ -15,7 +15,7 @@ EMOTIONS: dict[str, tuple[float, float, tuple[str, ...]]] = {
     "mysterious": (-0.2, 0.25, ("mysterious", "curious", "uncertain", "mystery")),
 }
 DEFAULT = ("nervous", "confident", "relieved")
-SPLITTER = re.compile(r"\b(?:and then|then|finally|eventually|afterwards|later)\b|[;\n]", re.I)
+SPLITTER = re.compile(r"\b(?:and then|then|finally|eventually|afterwards|later)\b|[;\n]", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
