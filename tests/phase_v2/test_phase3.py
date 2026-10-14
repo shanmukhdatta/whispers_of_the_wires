@@ -1,5 +1,4 @@
 """CPU render/job integration tests, cloud import rejects corrupted artifacts."""
-from pathlib import Path
 
 import pretty_midi
 import soundfile as sf
