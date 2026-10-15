@@ -14,8 +14,8 @@ from wow.emotion import analyze_prompt
 from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
 from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
-from wow.project_archive import build_project_archive
 from wow.preferences import recommend_moods
+from wow.project_archive import build_project_archive
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
