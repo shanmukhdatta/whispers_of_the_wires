@@ -13,3 +13,13 @@
 PRs are stacked: Phase 2 depends on 1, Phase 3 on 2, etc. The owner reviews and
 merges only after local/Kaggle verification. `original` is the design baseline;
 `main` is preserved.
+
+## Current implementation caveats
+Later branches implement the complete CPU-first baseline feature set and
+a testable cloud-job adapter, not verified neural GPU generation.
+Use `all-phases-complete` for an integrated code snapshot; PR #1–6 remain
+separate, stacked review points. No phase was merged to `main`.
+
+CI is expected to cover dependency checks, syntax compilation, unit tests,
+CPU end-to-end smoke and Ruff. Manual Studio/browser and Kaggle GPU acceptance
+must still be recorded by the repository owner.

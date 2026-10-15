@@ -1,10 +1,10 @@
 # 🎵 Whispers of the Wires
 ### Emotion-Trajectory-Guided, Controllable AI Music Composition Studio
 
-> **Status: Phase 1–6 implementation branches have been created. CPU automated CI and code review evidence are tracked per branch; Kaggle execution and Windows browser testing remain user acceptance gates.**
+> **Status: Six phases of baseline application code are pushed for testing. The V2 CPU pipeline and CI smoke tests run on GitHub Actions; Kaggle MIDI-GPT execution, neural-audio quality, human listening studies and Windows browser acceptance remain unverified.**
 > This repository currently contains an earlier Streamlit/MusicGen prototype on `main`.
 > The `original` branch is the agreed **design baseline** for a new phased implementation.
-> Planned features below must **not** be interpreted as completed or tested functionality.
+> Phases describe both implemented baseline behavior and future integration goals. Only successful CI and real GPU runs constitute execution evidence.
 
 **Project goal:** Given a short story, mood, or context, propose a *time-varying emotional trajectory*, translate it into a structured musical blueprint, generate editable multitrack instrumental MIDI, render audio, and allow localized musical edits while protecting untouched events. Evaluate both musical constraints and perceived emotion through reproducible tests and listener feedback.
 
@@ -167,3 +167,49 @@ These steps apply after checking out `phase-06-hardening` or an accepted branch 
 
 The basic WAV renderer uses simple waveforms and sounds synthetic; it is not a
 high-quality neural audio output. User-rated emotion accuracy is not known.
+
+## All-phases implementation status (V2)
+
+Implemented in the later code branches:
+- User-editable emotion trajectory table: modify section mood, valence and arousal before generation.
+- Deterministic four-track symbolic baseline and synthesis WAV preview.
+- Kaggle MIDI-GPT batch-generation script plus a private-kernel CLI for preparing, pushing, checking and importing a cloud job.
+- Versioned MIDI editing with preserved locked note events; WAV/MIDI download and complete project ZIP export.
+- Objective MIDI/audio evaluation, per-section human rating storage, descriptive preference recommendations and cloud-job cancellation.
+- SQLite-backed local job storage, checksummed import and export manifests, CPU unit/integration tests and GitHub Actions.
+
+**The trained MIDI-GPT weights are third-party, not trained by this project.**
+The Kaggle generation runner is an unverified integration candidate until run in the
+user's account. The built-in synthesizer uses simple waveforms. A commercial
+streaming generator, vocals, text-to-professional-audio quality, continuous
+automatic Kaggle hosting, and ACE-Step inference are **not implemented**.
+
+### Kaggle job tool
+
+Install optional cloud dependencies with `pip install -e ".[dev,studio,cloud]"`.
+Sign in to Kaggle CLI using your private credentials (never commit them).
+After choosing `midigpt` in the Studio and receiving a pending job ID:
+
+```bash
+python scripts/kaggle_job.py prepare JOB_ID --username YOUR_KAGGLE_USERNAME
+python scripts/kaggle_job.py push JOB_ID
+python scripts/kaggle_job.py status YOUR_KAGGLE_USERNAME/wow-music-JOBPREFIX
+python scripts/kaggle_job.py collect JOB_ID YOUR_KAGGLE_USERNAME/wow-music-JOBPREFIX
+```
+
+The private kernel slug and bundle directory are printed by the prepare/push steps.
+Wait until the Kaggle job completes before collecting. See `docs/CLOUD_WORKFLOW.md`.
+
+### Export and personalization
+
+The Studio supports downloadable WAV, MIDI and a ZIP archive with blueprint
+and integrity manifest. Feedback is stored locally; recommendations require at
+least three ratings for a given mood and are explicitly descriptive, not learned
+musical emotion mappings.
+
+### Validation versus completion
+
+The implementation is pushed **before user testing as requested**. Do not merge
+it into a public production default branch until actual GPU execution, Windows UI
+testing, music listening and security checks are completed. No model-quality
+benchmark scores are claimed.

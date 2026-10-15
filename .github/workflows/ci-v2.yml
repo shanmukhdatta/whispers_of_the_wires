@@ -1,9 +1,9 @@
 name: Whispers V2 CI
 on:
   push:
-    branches: ["original", "phase-**"]
+    branches: ["original", "phase-**", "all-phases-complete"]
   pull_request:
-    branches: ["original", "main", "phase-**"]
+    branches: ["original", "main", "phase-**", "all-phases-complete"]
 permissions:
   contents: read
 jobs:
@@ -19,7 +19,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
       - run: python -m pip check
-      - run: python -m compileall -q src/wow studio_v2.py notebooks/kaggle/batch_generate.py
+      - run: python -m compileall -q src/wow studio_v2.py notebooks/kaggle/batch_generate.py scripts/kaggle_job.py
       - run: python -m pytest tests/phase_v2 -q
       - run: python scripts/local_smoke.py
       - run: ruff check src/wow tests/phase_v2
