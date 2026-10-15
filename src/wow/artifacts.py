@@ -50,6 +50,12 @@ def verify_manifest(directory: Path) -> dict[str, Any]:
         file = (directory / name).resolve()
         if file.parent != directory or not file.is_file():
             raise ValueError("Artifact missing or escapes output directory")
-        if file.stat().st_size != meta.get("bytes") or sha256(file) != meta.get("sha256"):
+        meta = meta if isinstance(meta, dict) else {}
+        expected_hash = meta.get("sha256")
+        expected_bytes = meta.get("bytes")
+        if (not isinstance(expected_hash, str) or len(expected_hash) != 64
+                or not isinstance(expected_bytes, int) or expected_bytes < 0):
+            raise ValueError("Invalid artifact checksum metadata")
+        if file.stat().st_size != expected_bytes or sha256(file) != expected_hash:
             raise ValueError("Artifact checksum mismatch")
     return data

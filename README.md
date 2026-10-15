@@ -1,10 +1,10 @@
 # 🎵 Whispers of the Wires
 ### Emotion-Trajectory-Guided, Controllable AI Music Composition Studio
 
-> **Status: Architecture/phase roadmap approved; implementation and validation are in progress.**
+> **Status: Six phases of baseline application code are pushed for testing. The V2 CPU pipeline and CI smoke tests run on GitHub Actions; Kaggle MIDI-GPT execution, neural-audio quality, human listening studies and Windows browser acceptance remain unverified.**
 > This repository currently contains an earlier Streamlit/MusicGen prototype on `main`.
 > The `original` branch is the agreed **design baseline** for a new phased implementation.
-> Planned features below must **not** be interpreted as completed or tested functionality.
+> Phases describe both implemented baseline behavior and future integration goals. Only successful CI and real GPU runs constitute execution evidence.
 
 **Project goal:** Given a short story, mood, or context, propose a *time-varying emotional trajectory*, translate it into a structured musical blueprint, generate editable multitrack instrumental MIDI, render audio, and allow localized musical edits while protecting untouched events. Evaluate both musical constraints and perceived emotion through reproducible tests and listener feedback.
 
@@ -119,7 +119,7 @@ A cloud run produces `manifest.json`, `composition.mid`, `generation_metrics.jso
 | **5** `phase-05-evaluation` | theory/rhythm/signal metrics, test protocol, listener-rating storage, baseline comparisons | reproducible measured metrics, no unsupported accuracy claims |
 | **6** `phase-06-hardening` | robustness, validation, security, docs, optional neural-audio adapter behind feature flag | clean install/test, documented deployment limits and model terms |
 
-**Status at the creation of this baseline:** all phases **planned, not yet accepted**. Check the branch, PR checks and `docs/PHASE_TRACKER.md` on each phase for actual completion evidence.
+**Important:** Individual phase branches contain code submitted for verification; no phase is automatically accepted or merged. Check PR statuses and user-side results. Check the branch, PR checks and `docs/PHASE_TRACKER.md` on each phase for actual completion evidence.
 
 ### MVP success criteria
 - A user can input an English context and review/edit three emotional sections.
@@ -152,3 +152,64 @@ Research links: [MIDI-GPT](https://github.com/metacreation-lab/MIDI-GPT), [ACE-S
 
 ## Credits and terms
 This repository's code carries its own `LICENSE`; pretrained checkpoints and music assets carry separate conditions. Built as an academic, human-in-the-loop creative tool.
+
+## New V2 local application (on later phase branches)
+These steps apply after checking out `phase-06-hardening` or an accepted branch containing Phases 1–6. They are **not** instructions for unmodified `main`:
+
+1. Use Python 3.11, create a fresh virtual environment.
+2. `python -m pip install -e ".[dev,studio]"`
+3. `python -m pytest tests/phase_v2 -q`
+4. `python -m uvicorn wow.api:app --host 127.0.0.1 --port 8000`
+5. In a second terminal: `streamlit run studio_v2.py`
+6. Create, review, generate with `rule_based`, listen and edit.
+7. For true pretrained symbolic generation, follow `notebooks/kaggle/README.md` and
+   `docs/CLOUD_WORKFLOW.md`; import outputs after a successful GPU run.
+
+The basic WAV renderer uses simple waveforms and sounds synthetic; it is not a
+high-quality neural audio output. User-rated emotion accuracy is not known.
+
+## All-phases implementation status (V2)
+
+Implemented in the later code branches:
+- User-editable emotion trajectory table: modify section mood, valence and arousal before generation.
+- Deterministic four-track symbolic baseline and synthesis WAV preview.
+- Kaggle MIDI-GPT batch-generation script plus a private-kernel CLI for preparing, pushing, checking and importing a cloud job.
+- Versioned MIDI editing with preserved locked note events; WAV/MIDI download and complete project ZIP export.
+- Objective MIDI/audio evaluation, per-section human rating storage, descriptive preference recommendations and cloud-job cancellation.
+- SQLite-backed local job storage, checksummed import and export manifests, CPU unit/integration tests and GitHub Actions.
+
+**The trained MIDI-GPT weights are third-party, not trained by this project.**
+The Kaggle generation runner is an unverified integration candidate until run in the
+user's account. The built-in synthesizer uses simple waveforms. A commercial
+streaming generator, vocals, text-to-professional-audio quality, continuous
+automatic Kaggle hosting, and ACE-Step inference are **not implemented**.
+
+### Kaggle job tool
+
+Install optional cloud dependencies with `pip install -e ".[dev,studio,cloud]"`.
+Sign in to Kaggle CLI using your private credentials (never commit them).
+After choosing `midigpt` in the Studio and receiving a pending job ID:
+
+```bash
+python scripts/kaggle_job.py prepare JOB_ID --username YOUR_KAGGLE_USERNAME
+python scripts/kaggle_job.py push JOB_ID
+python scripts/kaggle_job.py status YOUR_KAGGLE_USERNAME/wow-music-JOBPREFIX
+python scripts/kaggle_job.py collect JOB_ID YOUR_KAGGLE_USERNAME/wow-music-JOBPREFIX
+```
+
+The private kernel slug and bundle directory are printed by the prepare/push steps.
+Wait until the Kaggle job completes before collecting. See `docs/CLOUD_WORKFLOW.md`.
+
+### Export and personalization
+
+The Studio supports downloadable WAV, MIDI and a ZIP archive with blueprint
+and integrity manifest. Feedback is stored locally; recommendations require at
+least three ratings for a given mood and are explicitly descriptive, not learned
+musical emotion mappings.
+
+### Validation versus completion
+
+The implementation is pushed **before user testing as requested**. Do not merge
+it into a public production default branch until actual GPU execution, Windows UI
+testing, music listening and security checks are completed. No model-quality
+benchmark scores are claimed.

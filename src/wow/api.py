@@ -14,6 +14,8 @@ from wow.emotion import analyze_prompt
 from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
 from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
+from wow.preferences import recommend_moods
+from wow.project_archive import build_project_archive
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
@@ -150,6 +152,14 @@ def submit_feedback(rating: ListenerRating) -> dict:
         raise HTTPException(status_code=404, detail="Composition not found")
     if rating.version not in versions(service().root, rating.composition_id):
         raise HTTPException(status_code=404, detail="Version not found")
+    blueprint_path = version_directory(
+        service().root, rating.composition_id, 1
+    ) / "blueprint.json"
+    blueprint = MusicBlueprint.model_validate_json(
+        blueprint_path.read_text(encoding="utf-8")
+    )
+    if rating.section_id not in {s.id for s in blueprint.sections}:
+        raise HTTPException(status_code=422, detail="Unknown emotional section")
     return FeedbackStore(service().root).add(rating)
 
 
@@ -158,3 +168,39 @@ def feedback_summary(composition_id: str) -> dict:
     if service().jobs.get(composition_id) is None:
         raise HTTPException(status_code=404, detail="Composition not found")
     return FeedbackStore(service().root).summarize(composition_id)
+
+
+@app.get("/api/v1/compositions/{composition_id}/export")
+def export_project(composition_id: str, version: int = 1) -> FileResponse:
+    job = service().jobs.get(composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        archive = build_project_archive(service().root, composition_id, version)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return FileResponse(
+        archive, media_type="application/zip", filename=f"whispers-v{version}.zip"
+    )
+
+
+@app.get("/api/v1/preferences")
+def preferences() -> dict:
+    return recommend_moods(service().root)
+
+
+@app.post("/api/v1/jobs/{job_id}/cancel")
+def cancel_job(job_id: str) -> dict:
+    manager = service()
+    job = manager.jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["state"] != "awaiting_cloud":
+        raise HTTPException(
+            status_code=409, detail="Only not-yet-imported cloud jobs may be cancelled"
+        )
+    manager.jobs.save(
+        job_id, state="cancelled", provider=job["provider"],
+        request_id=job["request_id"], data={"reason": "Cancelled by user"},
+    )
+    return manager.jobs.get(job_id)

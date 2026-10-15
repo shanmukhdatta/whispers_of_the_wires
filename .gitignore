@@ -72,3 +72,8 @@ htmlcov/
 
 # Redis
 dump.rdb
+
+# New local V2 artifacts and Kaggle credentials/workspace
+.wow_workspace/
+.kaggle/
+*.zip

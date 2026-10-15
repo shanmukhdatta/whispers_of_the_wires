@@ -71,10 +71,22 @@ class GenerationService:
             raise ValueError("Incorrect model provenance")
         if "composition.mid" not in manifest["outputs"]:
             raise ValueError("Missing MIDI artifact")
-        validate_midi(source / "composition.mid")
+        blueprint = MusicBlueprint.model_validate_json(
+            (self.root / "artifacts" / job_id / "blueprint.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if manifest.get("seed") != blueprint.generation.seed:
+            raise ValueError("Manifest seed mismatch")
+        validate_midi(source / "composition.mid", expected_tracks=len(blueprint.tracks))
         target = self.root / "artifacts" / job_id
         shutil.copyfile(source / "composition.mid", target / "composition.mid")
         render_wav(target / "composition.mid", target / "composition.wav")
+        write_manifest(
+            target, request_id=job["request_id"], provider="midigpt",
+            checkpoint="yellow_medium", seed=blueprint.generation.seed,
+            filenames=["composition.mid", "composition.wav"],
+        )
         self.jobs.save(
             job_id, state="completed", provider="midigpt",
             request_id=job["request_id"],
