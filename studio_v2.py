@@ -156,6 +156,29 @@ if "job_id" in st.session_state:
             ).json()
             with st.expander("Measured music metrics"):
                 st.json(report)
+            st.subheader("Help improve future compositions")
+            with st.form("feedback_form"):
+                mood_section = st.selectbox(
+                    "Which emotional section?", [s["id"] for s in
+                                                 st.session_state["active_blueprint"]["sections"]]
+                )
+                mood_match = st.slider("Emotion match", 1, 5, 3)
+                musicality = st.slider("Musical coherence", 1, 5, 3)
+                comments = st.text_area("Optional comments", max_chars=500)
+                submitted = st.form_submit_button("Save listener feedback")
+            if submitted:
+                response = call(
+                    "POST", "/api/v1/feedback",
+                    json={"composition_id": job_id, "version": version,
+                          "section_id": mood_section, "mood_match": mood_match,
+                          "musical_coherence": musicality, "comments": comments},
+                ).json()
+                if response.get("stored"):
+                    st.success("Saved. Ratings are not claims of model accuracy.")
+            preference = call("GET", "/api/v1/preferences").json()
+            if preference.get("sufficient_data"):
+                st.caption("Past mood preferences (descriptive, not model-trained)")
+                st.dataframe(preference["recommendations"], hide_index=True)
             st.subheader("Selective bar-level MIDI editing")
             active_bp = st.session_state.get("active_blueprint", blueprint)
             maximum = int(active_bp["total_bars"])
