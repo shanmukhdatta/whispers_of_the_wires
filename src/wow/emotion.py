@@ -41,8 +41,8 @@ def analyze_prompt(prompt: str) -> list[EmotionSignal]:
         raise ValueError("Prompt must not be empty")
     signals = [normalize_mood(part) for part in parts[:4]]
     if len(signals) == 1:
-        # Explicit fallback: proposing three stages is an artistic suggestion, NOT inference.
-        return [normalize_mood(m) for m in DEFAULT]
+        # One mood is a static trajectory, not permission to invent a dramatic story.
+        return [signals[0]] * 3
     return signals
 
 

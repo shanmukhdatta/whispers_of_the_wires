@@ -70,7 +70,9 @@ def prepare(root: Path, job_id: str, username: str, slug: str = "wow-music") -> 
         raise FileNotFoundError("Kaggle batch runner missing from source checkout")
     target = service.root / "kaggle_jobs" / job_id
     if target.exists():
-        shutil.rmtree(target)
+        raise FileExistsError(
+            "A prepared Kaggle bundle already exists; inspect or remove it before rebuilding"
+        )
     target.mkdir(parents=True)
     shutil.copyfile(source, target / "blueprint.json")
     shutil.copyfile(runner, target / "batch_generate.py")

@@ -14,6 +14,7 @@ from wow.emotion import analyze_prompt
 from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
 from wow.generation import GenerationService
 from wow.planning import PlanningRequest, build_blueprint
+from wow.project_archive import build_project_archive
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
@@ -158,3 +159,17 @@ def feedback_summary(composition_id: str) -> dict:
     if service().jobs.get(composition_id) is None:
         raise HTTPException(status_code=404, detail="Composition not found")
     return FeedbackStore(service().root).summarize(composition_id)
+
+
+@app.get("/api/v1/compositions/{composition_id}/export")
+def export_project(composition_id: str, version: int = 1) -> FileResponse:
+    job = service().jobs.get(composition_id)
+    if job is None or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        archive = build_project_archive(service().root, composition_id, version)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return FileResponse(
+        archive, media_type="application/zip", filename=f"whispers-v{version}.zip"
+    )
