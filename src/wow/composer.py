@@ -47,33 +47,53 @@ def compose_rule_based(blueprint: MusicBlueprint) -> pretty_midi.PrettyMIDI:
                    if s.start_bar <= bar < s.start_bar + s.bar_count)
         energy = (sec.arousal + 1) / 2
         velocity = int(46 + 52 * energy)
+        velocity += {"cinematic": 0, "ambient": -17, "lofi": -10,
+                     "upbeat": 15, "classical": -5}[blueprint.style]
+        velocity = max(20, min(120, velocity))
         start = bar * bar_duration
         degree = chord_steps[bar % len(chord_steps)]
         chord_root = root + scale[degree] - 12
         third = root + scale[(degree + 2) % 7] - 12
         fifth = root + scale[(degree + 4) % 7] - 12
+        sustain = {"cinematic": 0.95, "ambient": 0.99, "lofi": 0.75,
+                   "upbeat": 0.60, "classical": 0.92}[blueprint.style]
         if "harmony" in instruments:
             for pitch in (chord_root, third, fifth):
-                _add(instruments["harmony"], pitch, start, start + bar_duration * 0.95,
+                _add(instruments["harmony"], pitch, start, start + bar_duration * sustain,
                      max(20, velocity - 18))
         if "bass" in instruments:
             _add(instruments["bass"], chord_root - 12, start,
                  start + bar_duration * 0.8, max(20, velocity - 8))
         if "melody" in instruments:
-            count = 4 if energy >= 0.65 else 2
+            if blueprint.style == "ambient":
+                count = 2 if energy >= 0.7 else 1
+            elif blueprint.style == "lofi":
+                count = 2
+            elif blueprint.style == "upbeat":
+                count = 6 if energy >= 0.5 else 4
+            elif blueprint.style == "classical":
+                count = 4
+            else:
+                count = 4 if energy >= 0.65 else 2
             step = bar_duration / count
             for n in range(count):
                 pitch = root + scale[(degree + n + rng.choice([-1, 0, 1])) % 7]
                 _add(instruments["melody"], pitch + 12, start + n * step,
                      start + (n + 0.82) * step, velocity)
         if "drums" in instruments:
-            for n in range(4):
-                if n in (0, 2):
-                    _add(instruments["drums"], 36, start + n * beat,
-                         start + n * beat + 0.08, velocity)
-                if n in (1, 3) and energy >= 0.45:
-                    _add(instruments["drums"], 38, start + n * beat,
-                         start + n * beat + 0.08, velocity - 10)
+            if blueprint.style in ("ambient", "classical"):
+                # Minimal percussion keeps four named MIDI tracks after serialization.
+                _add(instruments["drums"], 36, start, start + 0.06, 8)
+            else:
+                for n in range(4):
+                    if n in (0, 2):
+                        _add(instruments["drums"], 36, start + n * beat,
+                             start + n * beat + 0.08, velocity)
+                    if n in (1, 3) and (
+                        energy >= 0.45 or blueprint.style == "upbeat"
+                    ):
+                        _add(instruments["drums"], 38, start + n * beat,
+                             start + n * beat + 0.08, velocity - 10)
     midi.instruments = list(instruments.values())
     return midi
 

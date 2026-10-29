@@ -44,14 +44,28 @@ def main() -> None:
     duration_bar = 4 * 60 / bp.tempo_bpm
     for section in bp.sections:
         for offset in range(0, section.bar_count, 4):
-            score = Score(tracks=[Track(bars=[Bar() for _ in range(4)])
-                                  for _ in bp.tracks])
+            score = Score(
+                tracks=[
+                    Track(
+                        bars=[Bar() for _ in range(4)],
+                        instrument=role.program,
+                        track_type="drum" if role.is_drum else "melodic",
+                    )
+                    for role in bp.tracks
+                ],
+                tempo=round(60_000_000 / bp.tempo_bpm),
+            )
             attrs = engine._analyzer.attribute_sizes()
             size = attrs.get("note_density", 0)
             level = max(0, min(size - 1, int((section.arousal + 1) / 2 * size)))
             prompts = []
-            for index in range(len(bp.tracks)):
-                values = {"note_density": level} if size > 0 else {}
+            for index, role in enumerate(bp.tracks):
+                # yellow_medium only supports note_density conditioning for DRUM
+                # tracks. Applying it to melody/harmony/bass rejects inference.
+                values = (
+                    {"note_density": level}
+                    if role.is_drum and size > 0 else {}
+                )
                 prompts.append(TrackPrompt(
                     id=index, bars=[0, 1, 2, 3], attributes=values,
                 ))
