@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import shutil
 import uuid
+from time import perf_counter
 from pathlib import Path
 
 from wow.artifacts import verify_manifest, write_manifest
@@ -32,6 +33,7 @@ class GenerationService:
             self.jobs.save(job_id, state="awaiting_cloud", provider=provider,
                            request_id=blueprint.request_id, data=info)
             return self.jobs.get(job_id)
+        started = perf_counter()
         self.jobs.save(job_id, state="running", provider=provider,
                        request_id=blueprint.request_id, data={})
         try:
@@ -44,10 +46,12 @@ class GenerationService:
                 filenames=[midi.name, wav.name],
             )
             state = "completed"
-            data = {"metrics": metrics, "assets": ["composition.mid", "composition.wav"]}
+            data = {"metrics": metrics, "assets": ["composition.mid", "composition.wav"],
+                    "elapsed_seconds": round(perf_counter() - started, 3)}
         except (OSError, ValueError, RuntimeError) as exc:
             state = "failed"
-            data = {"error_code": "GENERATION_FAILED", "message": str(exc)}
+            data = {"error_code": "GENERATION_FAILED", "message": str(exc),
+                    "elapsed_seconds": round(perf_counter() - started, 3)}
         self.jobs.save(job_id, state=state, provider=provider,
                        request_id=blueprint.request_id, data=data)
         return self.jobs.get(job_id)

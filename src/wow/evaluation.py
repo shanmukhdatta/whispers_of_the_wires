@@ -45,10 +45,28 @@ def evaluate_files(midi_path: Path, wav_path: Path, blueprint: MusicBlueprint) -
     peak = float(np.max(np.abs(audio)))
     rms = float(np.sqrt(np.mean(np.square(audio))))
     actual_duration = len(audio) / sample_rate
+    track_count = len(midi.instruments)
+    expected_tracks = len(blueprint.tracks)
+    tracks_present = sum(bool(x.notes) for x in midi.instruments)
+    target_duration = blueprint.duration_seconds
+    # This is constraint compliance, NOT a score of perceived emotion or artistry.
+    duration_fraction = max(0.0, 1.0 - abs(actual_duration - target_duration)
+                            / max(target_duration, 1))
+    structural_fraction = min(1.0, tracks_present / max(expected_tracks, 1))
+    audio_fraction = 1.0 if rms > 1e-5 and peak < 0.999 else 0.0
+    constraint_score = round(
+        100 * (0.5 * structural_fraction + 0.3 * duration_fraction
+               + 0.2 * audio_fraction), 2
+    )
     return {
         "schema_version": "1.0",
         "objective": {
-            "tracks": len(midi.instruments),
+            "constraint_score_0_to_100": constraint_score,
+            "constraint_score_definition": (
+                "50% tracks with notes, 30% duration agreement, "
+                "20% non-silent unclipped audio; NOT a mood or creativity score"
+            ),
+            "tracks": track_count,
             "notes_by_track": counts,
             "pitch_class_counts": pitch_classes,
             "midi_duration_seconds": round(midi.get_end_time(), 4),

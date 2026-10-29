@@ -18,6 +18,7 @@ from wow.generation import GenerationService
 from wow.library import LibraryStore
 from wow.planning import PlanningRequest, build_blueprint
 from wow.preferences import recommend_moods
+from wow.variations import VariationRequest, vary
 from wow.project_archive import build_project_archive
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
@@ -320,3 +321,31 @@ def get_composition_blueprint(composition_id: str) -> MusicBlueprint:
         return MusicBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class BatchRequest(BaseModel):
+    blueprints: list[MusicBlueprint] = Field(min_length=1, max_length=4)
+
+
+@app.post("/api/v1/jobs/batch", status_code=202)
+def generate_batch(request: BatchRequest) -> dict:
+    # CPU batches are deliberately capped; Kaggle requests remain asynchronous.
+    results = [service().create(blueprint) for blueprint in request.blueprints]
+    return {"jobs": results, "count": len(results)}
+
+
+@app.post("/api/v1/compositions/{composition_id}/variations", status_code=202)
+def create_variation(composition_id: str, request: VariationRequest) -> dict:
+    manager = service()
+    current = manager.jobs.get(composition_id)
+    if current is None or current["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Original composition not found")
+    try:
+        from wow.editing import version_directory
+        path = version_directory(manager.root, composition_id, 1) / "blueprint.json"
+        blueprint = MusicBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+        proposed = vary(blueprint, request)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    job = manager.create(proposed)
+    return {**job, "source_composition_id": composition_id}

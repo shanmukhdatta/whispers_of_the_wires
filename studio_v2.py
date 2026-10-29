@@ -225,7 +225,21 @@ with tab_create:
                 if preference.get("sufficient_data"):
                     st.caption("Past mood preferences (descriptive, not model-trained)")
                     st.dataframe(preference["recommendations"], hide_index=True)
-                st.subheader("Selective bar-level MIDI editing")
+                st.subheader("Create a fresh variation or extension")
+            variable_seed = st.number_input(
+                "New random seed", min_value=0, max_value=4294967295,
+                value=2027, step=1, key="variation_seed"
+            )
+            extension = st.selectbox("Add bars at the end", [0, 4, 8, 12],
+                                     key="extend_bars_choice")
+            if st.button("Generate new variation"):
+                response = call(
+                    "POST", f"/api/v1/compositions/{job_id}/variations",
+                    json={"seed": int(variable_seed), "extend_bars": extension},
+                ).json()
+                st.session_state["job_id"] = response["job_id"]
+                st.info("New variation requested. Refresh to listen.")
+            st.subheader("Selective bar-level MIDI editing")
                 active_bp = st.session_state.get("active_blueprint") or st.session_state.get("blueprint")
                 maximum = int(active_bp["total_bars"])
                 tracks = [t["id"] for t in active_bp["tracks"]]
