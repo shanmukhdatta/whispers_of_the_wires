@@ -6,6 +6,20 @@
 > The `original` branch is the agreed **design baseline** for a new phased implementation.
 > Phases describe both implemented baseline behavior and future integration goals. Only successful CI and real GPU runs constitute execution evidence.
 
+## Mentor demo: single-command music composition
+
+The new integrated branch `phase-07-mentor-readiness` includes a standalone, dark-blue Streamlit music studio modeled on the dashboard concept in the original proposal. It needs **no separate FastAPI process**:
+
+```bash
+git checkout phase-07-mentor-readiness
+python -m pip install -e ".[dev,studio]"
+streamlit run mentor_dashboard.py
+```
+
+Open the Streamlit URL, enter an emotional context, review and adjust the trajectory, choose a key, tempo, style and seed, then press **Compose music**. The rule-based baseline creates four-track MIDI and a synthesized WAV for playback. Generate variations, perform versioned bar edits, save favorites, submit listener ratings, review MIDI/audio metrics, and download MIDI/WAV/ZIP bundles. Projects and favorites persist in `.wow_workspace/`. 
+
+**What this is not:** The built-in generator is a *deterministic procedural baseline*, not the pretrained MIDI-GPT model. Real MIDI-GPT output still requires a Kaggle execution + artifact import and listening tests; no quality or response-time guarantees are claimed. Styles are supported for the local baseline only. See [Mentor readiness matrix](docs/MENTOR_READINESS.md) for feature status and acceptance criteria.
+
 **Project goal:** Given a short story, mood, or context, propose a *time-varying emotional trajectory*, translate it into a structured musical blueprint, generate editable multitrack instrumental MIDI, render audio, and allow localized musical edits while protecting untouched events. Evaluate both musical constraints and perceived emotion through reproducible tests and listener feedback.
 
 **Team & constraints:** one student developer; local CPU; **Kaggle cloud GPU available intermittently**, not a continuously available API; development-first, noncommercial academic prototype; initial English-only instrumental generation.
