@@ -1,3 +1,7 @@
+> **Detailed per-day source audit:** [30-day PDF coverage register](PDF_30_DAY_COVERAGE.md).
+> This file distinguishes implementation evidence from planned metrics. The original
+> DOCX is an eight-week goal statement, while the additional PDF has a six-week title.
+
 # Whispers of the Wires — source-to-code audit (29 October 2026)
 
 The primary DOCX describes an **eight-week** project and five modules. The
@@ -11,7 +15,7 @@ Missing = not implemented.
 
 | Requirement in uploaded sources | Status in mentor-readiness-dashboard |
 |---|---|
-| Mood/context/situation prompt | Implemented: Streamlit Compose and heuristic NLP |
+| Mood/context/situation prompt | Implemented: Streamlit and text-mentioned or explicit activity/weather/time; no sensor data |
 | Mood progression and parameter mapping | Implemented heuristic; emotional correctness unverified |
 | Model comparison and LLM evaluation | Partial: model decision notes; no controlled experiment results |
 | Actual AI music generation | Partial: third-party MIDI-GPT Kaggle adapter code; **no observed GPU model run** |
@@ -27,7 +31,7 @@ Missing = not implemented.
 | Playlist crossfade, real-time parameter adjustment, live audio streaming | Missing; not feasible using intermittent Kaggle batch inference |
 | Scoring and user feedback | Implemented structural/audio constraint score and stored user ratings; no verified emotional accuracy |
 | Personalized suggestions | Partial: descriptive previous ratings, not a fine-tuned recommendation model |
-| Dataset preprocessing pipeline | Implemented: inspect permitted MIDI and WAV/FLAC, verify validity |
+| Dataset preprocessing pipeline | Implemented: permitted MIDI/audio inspection, MIDI quantization, MFCC/spectral/chroma features |
 | Scalability (20 concurrent users), uptime, <5s cloud generation | Unverified and not defensible for a local single-user Kaggle prototype |
 | 85% emotional alignment, 90% task success, satisfaction | Unverified: no listener study yet |
 | Tests, version control, README and final report | Automated tests/CI plus reports; manual Windows/Mobile QA pending |
