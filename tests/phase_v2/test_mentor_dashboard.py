@@ -30,7 +30,11 @@ def test_style_differences_and_seed_reproducibility():
     plan = default_blueprint("mood journey")
     plan.style = "ambient"
     ambient = compose_rule_based(plan)
-    assert compose_rule_based(plan).instruments[0].notes == ambient.instruments[0].notes
+    before = [(n.pitch, n.start, n.end, n.velocity)
+              for n in compose_rule_based(plan).instruments[0].notes]
+    after = [(n.pitch, n.start, n.end, n.velocity)
+             for n in ambient.instruments[0].notes]
+    assert before == after
     plan.style = "upbeat"
     upbeat = compose_rule_based(plan)
     assert len(upbeat.instruments[0].notes) > len(ambient.instruments[0].notes)
