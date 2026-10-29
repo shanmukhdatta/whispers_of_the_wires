@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
 from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
 from wow.audio_features import extract_music_features
+from wow.audio_processing import crossfade_playlist, transform_preview
 from wow.context import extract_context
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
@@ -388,3 +389,58 @@ def get_music_features(composition_id: str, version: int = Query(default=1, ge=1
         )
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/compositions/{composition_id}/listen")
+def preview_with_controls(
+    composition_id: str, version: int = Query(default=1, ge=1),
+    volume_percent: int = Query(default=100, ge=0, le=200),
+    lowpass_hz: int | None = Query(default=None, ge=80, le=10000),
+) -> Response:
+    """Return a processed WAV preview, never modify the saved composition."""
+    manager = service()
+    job = manager.jobs.get(composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    if version not in versions(manager.root, composition_id):
+        raise HTTPException(status_code=404, detail="Version not found")
+    path = version_directory(manager.root, composition_id, version) / "composition.wav"
+    try:
+        payload = transform_preview(
+            path, gain=volume_percent / 100, lowpass_hz=lowpass_hz,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(content=payload, media_type="audio/wav")
+
+
+@app.get("/api/v1/playlists/{playlist_id}/listen")
+def playlist_listen(
+    playlist_id: str,
+    fade_seconds: float = Query(default=1.5, ge=0, le=8),
+    volume_percent: int = Query(default=100, ge=0, le=200),
+) -> Response:
+    manager = service()
+    playlists = LibraryStore(manager.root).playlists()
+    active = next((item for item in playlists if item["id"] == playlist_id), None)
+    if active is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    if not active["items"]:
+        raise HTTPException(status_code=422, detail="Playlist has no compositions")
+    paths = []
+    for composition_id in active["items"]:
+        job = manager.jobs.get(composition_id)
+        if not job or job["state"] != "completed":
+            raise HTTPException(status_code=422, detail="Playlist has unavailable items")
+        paths.append(
+            version_directory(manager.root, composition_id, 1) / "composition.wav"
+        )
+    try:
+        mixed = crossfade_playlist(
+            paths, fade_seconds=fade_seconds, gain=volume_percent / 100,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(content=mixed, media_type="audio/wav", headers={
+        "Content-Disposition": 'attachment; filename="whispers-playlist.wav"',
+    })

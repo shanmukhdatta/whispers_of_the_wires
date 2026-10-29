@@ -177,7 +177,26 @@ with tab_create:
                         params={"version": version}, timeout=40,
                     ).content
                 wav = fetch_asset("composition.wav")
-                st.audio(wav, format="audio/wav")
+                st.caption("Listening controls affect only this preview, not the MIDI or saved WAV.")
+                m1, m2 = st.columns(2)
+                with m1:
+                    mix_volume = st.slider("Listening volume (%)", 0, 200, 100)
+                with m2:
+                    listen_filter = st.selectbox(
+                        "Sound brightness", ["Original", "Mellow", "Warm", "Clear"]
+                    )
+                lowpasses = {"Original": None, "Mellow": 650, "Warm": 1500, "Clear": 6000}
+                if mix_volume != 100 or listen_filter != "Original":
+                    params = {"version": version, "volume_percent": mix_volume}
+                    if lowpasses[listen_filter] is not None:
+                        params["lowpass_hz"] = lowpasses[listen_filter]
+                    listening = call(
+                        "GET", f"/api/v1/compositions/{job_id}/listen",
+                        params=params, timeout=60,
+                    ).content
+                else:
+                    listening = wav
+                st.audio(listening, format="audio/wav")
                 array, rate = sf.read(io.BytesIO(wav), always_2d=True)
                 series = np.mean(array, axis=1)
                 skip = max(1, len(series) // 1500)
@@ -403,6 +422,28 @@ with tab_library:
                 st.caption(f"Playlist contains {len(active['items'])} compositions")
                 for item in active["items"]:
                     st.text(labels.get(item, item[:8]))
+                if active["items"]:
+                    crossfade = st.slider(
+                        "Crossfade between tracks (seconds)", 0.0, 8.0, 1.5, 0.5
+                    )
+                    if st.button("Render playlist listening mix"):
+                        try:
+                            st.session_state["playlist_mix"] = (
+                                playlist_id, call(
+                                    "GET", f"/api/v1/playlists/{playlist_id}/listen",
+                                    params={"fade_seconds": crossfade}, timeout=90,
+                                ).content,
+                            )
+                        except requests.RequestException as exc:
+                            st.error(f"Playlist render failed: {exc}")
+                    if "playlist_mix" in st.session_state:
+                        rendered_id, mixed_audio = st.session_state["playlist_mix"]
+                        if rendered_id == playlist_id:
+                            st.audio(mixed_audio, format="audio/wav")
+                            st.download_button(
+                                "Download playlist WAV", mixed_audio,
+                                file_name="whispers-playlist.wav",
+                            )
             st.write("### Complete composition history")
             st.dataframe(
                 [{"Story": x["prompt"], "Style": x["genre"],
