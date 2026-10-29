@@ -18,8 +18,8 @@ from wow.generation import GenerationService
 from wow.library import LibraryStore
 from wow.planning import PlanningRequest, build_blueprint
 from wow.preferences import recommend_moods
-from wow.variations import VariationRequest, vary
 from wow.project_archive import build_project_archive
+from wow.variations import VariationRequest, vary
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
