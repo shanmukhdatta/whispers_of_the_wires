@@ -30,7 +30,10 @@ Example: `Anxious before an exam, then confident, finally relieved`.
 - MP3 export when **FFmpeg** is installed on the local machine.
 - Targeted note editing, previous versions, new-seed variations and extensions.
 - Saved compositions, favorites, playlists and locally stored listener ratings.
-- Objective duration/note/audio checks, distinct from human musical emotion scores.
+- Objective duration/note/audio checks, plus MFCC/spectral centroid/rolloff/chroma descriptors,
+  distinct from human musical emotion scores.
+- Context scenario inputs (activity, weather, time of day); no live sensors or weather data.
+- Reversible MIDI quantization for authorized source files.
 - Audio/MIDI dataset inspection (only use files you have the rights to use).
 
 ## Quick start (Python 3.11)
@@ -91,6 +94,9 @@ src/wow/
   editing.py          Bar/track editing with locked-event checks
   variations.py       Seed variations and extensions
   evaluation.py       Objective metrics and listener rating storage
+  audio_features.py   Spectral descriptors, MFCC, symbolic chroma
+  midi_preprocess.py  Quantization without overwriting source
+  context.py          Explicit and text-mentioned activity/weather/time
   library.py          Favorites, playlists, preferences and saved songs
   data_pipeline.py    Authorized MIDI/WAV/FLAC inspection
   audio_export.py     FFmpeg-based MP3 export

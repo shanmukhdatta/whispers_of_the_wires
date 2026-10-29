@@ -37,7 +37,7 @@ def extract_context(
     for field, options in VOCABULARY.items():
         inferred[field] = None
         for canonical, terms in options.items():
-            if any(re.search(r"\b" + re.escape(term) + r"\b", prompt, re.I)
+            if any(re.search(r"\b" + re.escape(term) + r"\b", prompt, re.IGNORECASE)
                    for term in terms):
                 inferred[field] = canonical
                 break

@@ -74,11 +74,32 @@ with tab_create:
     manual_moods = st.text_input(
         "Override the stages (optional, comma-separated)", help="Example: nervous, confident, relieved"
     )
+    st.caption("Optional situation controls: these describe your own input, not live weather.")
+    cx1, cx2, cx3 = st.columns(3)
+    with cx1:
+        context_activity = st.selectbox(
+            "Activity", ["From prompt", "study", "relax", "exercise", "travel", "work"]
+        )
+    with cx2:
+        context_weather = st.selectbox(
+            "Weather scenario", ["From prompt", "rainy", "sunny", "snowy", "windy"]
+        )
+    with cx3:
+        context_time = st.selectbox(
+            "Time scenario", ["From prompt", "morning", "afternoon", "evening", "night"]
+        )
+
     if st.button("Analyze and create plan", type="primary", use_container_width=True):
         try:
             args = {"prompt": prompt, "tempo_bpm": tempo, "total_bars": bars,
                     "key": music_key, "genre": genre,
                     "instrument_programs": {"melody": PROGRAMS[melody_program]}}
+            if context_activity != "From prompt":
+                args["context_activity"] = context_activity
+            if context_weather != "From prompt":
+                args["context_weather"] = context_weather
+            if context_time != "From prompt":
+                args["context_time_of_day"] = context_time
             if manual_moods.strip():
                 args["moods"] = [word.strip() for word in manual_moods.split(",") if word.strip()]
             st.session_state["blueprint"] = call(
@@ -90,7 +111,7 @@ with tab_create:
     if "blueprint" in st.session_state:
         blueprint = st.session_state["blueprint"]
         st.subheader("Edit your emotional journey")
-        st.caption("Edit mood, valence and arousal. Bar boundaries and IDs are locked.")
+        st.caption("Edit mood, valence, arousal and dominance. Section boundaries are locked.")
         frame = pd.DataFrame(blueprint["sections"])
         selected = st.data_editor(
             frame,
@@ -204,6 +225,23 @@ with tab_create:
                 ).json()
                 with st.expander("Measured music metrics"):
                     st.json(report)
+                with st.expander("Spectral features (MFCC, chroma, brightness)"):
+                    descriptors = call(
+                        "GET", f"/api/v1/compositions/{job_id}/features",
+                        params={"version": version}, timeout=45,
+                    ).json()
+                    st.metric(
+                        "Spectral centroid (Hz)",
+                        descriptors["audio"]["spectral_centroid_mean_hz"],
+                    )
+                    chroma = descriptors["symbolic"]["chroma_12"]
+                    st.bar_chart(pd.DataFrame({
+                        "pitch_class": ["C", "C♯", "D", "D♯", "E", "F",
+                                        "F♯", "G", "G♯", "A", "A♯", "B"],
+                        "weight": chroma,
+                    }).set_index("pitch_class"))
+                    st.caption(descriptors["caveat"])
+
                 st.subheader("Help improve future compositions")
                 with st.form("feedback_form"):
                     mood_section = st.selectbox(
