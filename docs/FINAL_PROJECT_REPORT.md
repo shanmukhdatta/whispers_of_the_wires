@@ -67,3 +67,11 @@ https://github.com/Metacreation-Lab/MIDI-GPT .
 pretty_midi: https://github.com/craffel/pretty-midi .
 Streamlit: https://docs.streamlit.io/ .
 Uploaded project proposal, compressed timeline PDF and knowledge reference PDF.
+
+## Source-linked training extension
+An optional transformer classifier training implementation is provided in
+`scripts/train_emotion_classifier.py` and `src/wow/training_data.py`.
+Its reproducible CSV split validation, checkpoint output and data provenance
+are documented in `docs/TRAINING_PROTOCOL.md`. **No training experiment has
+been run and no trained checkpoint is supplied**; this source code is not
+misrepresented as measured research progress.

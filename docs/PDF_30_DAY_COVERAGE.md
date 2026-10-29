@@ -27,7 +27,7 @@ verified results; this repository must not relabel them as completed evidence.
 | 13 | MP3/WAV/MIDI, playlists, batch, loop/crossfade/volume/EQ/share | Partial | Export, playlist and batch; advanced playback and social sharing missing |
 | 14 | Profiles, learned recommendations, analytics and privacy controls | Partial | Local data, feedback-based descriptive preferences and analytics; no model learning/profile auth |
 | 15 | All UI/backend tests, UAT scripts, accessibility and UX sign-off | Partial | CPU CI and mentor guide; human UAT and accessibility audit unverified |
-| 16 | Model fine-tuning, feedback-training, style transfer, collaborative filtering, continuation | Partial | Continuation/variation implemented; train/finetune/filtering not done |
+| 16 | Model fine-tuning, feedback-training, style transfer, collaborative filtering, continuation | Partial | Continuation/variation and optional text-classifier fine-tuning code; no real training results, music-model fine-tune or collaborative filtering |
 | 17 | Caching, batching, efficient streaming, load balance, 20-user stress | Partial | Batch and SQLite; no measured streaming/load balancing benchmarks |
 | 18 | Unit/integration/performance tests, QA automation, error tracking | Partial | Automated tests and CI, objective metrics; no monitoring or regression benchmark suite |
 | 19 | User-testing setup, internal acceptance, guides, backup/recovery | Partial | Feedback forms, demo guide; no participant sessions or backup recovery exercise |
@@ -80,9 +80,10 @@ Claims that all such models have been implemented would be **incorrect**.
    notebook run URL, resolved checkpoint revision, GPU type, input blueprint,
    resulting MIDI, WAV and timing. The existence of an integration script is
    not a completed run.
-2. **Fine-tuning/training is explicitly requested by the original DOCX.** There
-   is currently no real music dataset, approved license evidence, training
-   notebook output, new weights or before/after evaluation. The user/mentor
+2. **Fine-tuning/training is explicitly requested by the original DOCX.** An
+   optional text-emotion classifier fine-tuning script and data validation are
+   implemented, but there is no real labeled corpus, approved license
+   evidence, executed run, learned weights or before/after evaluation. The user/mentor
    must decide whether to run an original model fine-tune or accept the
    open-weight inference baseline and document a scope change.
 3. **Conduct real user/listener testing.** Record voluntary mood/coherence

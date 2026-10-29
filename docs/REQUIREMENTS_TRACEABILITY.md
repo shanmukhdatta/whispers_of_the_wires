@@ -19,7 +19,7 @@ Missing = not implemented.
 | Mood progression and parameter mapping | Implemented heuristic; emotional correctness unverified |
 | Model comparison and LLM evaluation | Partial: model decision notes; no controlled experiment results |
 | Actual AI music generation | Partial: third-party MIDI-GPT Kaggle adapter code; **no observed GPU model run** |
-| Fine-tuning on a music dataset | Missing: no dataset, train artifacts, or learned weights |
+| Fine-tuning on a music dataset | Optional text emotion classifier training CLI added; actual dataset, train artifacts and learned weights still missing |
 | Four-track MIDI, melody/harmony/bass/drums | Implemented, CPU regression-tested |
 | Musical style, key, tempo, instrumental controls | Implemented for deterministic CPU baseline; MIDI-GPT conditioning unverified |
 | Audio synthesis, visualizations and playback | Implemented WAV, waveform; browser/device QA pending |

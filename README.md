@@ -6,7 +6,9 @@
 [Mentor demo guide](docs/MENTOR_DEMO.md) ·
 [Project report](docs/FINAL_PROJECT_REPORT.md) ·
 [Model choices](docs/MODEL_DECISIONS.md) ·
-[Research protocol](docs/RESEARCH_PROTOCOL.md)
+[Research protocol](docs/RESEARCH_PROTOCOL.md) ·
+[PDF 30-day audit](docs/PDF_30_DAY_COVERAGE.md) ·
+[Classifier fine-tuning guide](docs/TRAINING_PROTOCOL.md)
 
 > **Development status:** Dashboard + local four-track composition workflow implemented and checked in GitHub CI. Pretrained MIDI-GPT inference on Kaggle, musical quality studies, and cross-device usability are **not yet verified**. Do not interpret this repository as a validated production music generator.
 
@@ -34,6 +36,9 @@ Example: `Anxious before an exam, then confident, finally relieved`.
   distinct from human musical emotion scores.
 - Context scenario inputs (activity, weather, time of day); no live sensors or weather data.
 - Reversible MIDI quantization for authorized source files.
+- Optional pretrained text-emotion classifier fine-tuning **code** with
+  train/validation CSV leakage checks; no trained weights or research scores
+  are bundled. The real experiment still needs approved data/GPU.
 - Audio/MIDI dataset inspection (only use files you have the rights to use).
 
 ## Quick start (Python 3.11)
