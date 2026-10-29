@@ -19,7 +19,7 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
       - run: python -m pip check
-      - run: python -m compileall -q src/wow studio_v2.py notebooks/kaggle/batch_generate.py scripts/kaggle_job.py scripts/mentor_demo.py scripts/analyze_dataset.py
+      - run: python -m compileall -q src/wow studio_v2.py notebooks/kaggle/batch_generate.py scripts/kaggle_job.py scripts/mentor_demo.py scripts/analyze_dataset.py run_studio.py
       - run: python -m pytest tests/phase_v2 -q
       - run: python scripts/local_smoke.py
       - run: python scripts/mentor_demo.py --output .wow_workspace/ci_mentor_demo

@@ -14,7 +14,9 @@ pytest tests/phase_v2 -q
 python scripts/local_smoke.py
 ```
 
-Terminal 1:
+For a one-command local launch, use `python run_studio.py`.
+
+Terminal 1 (alternative):
 ```bash
 python -m uvicorn wow.api:app --host 127.0.0.1 --port 8000
 ```
