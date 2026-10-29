@@ -46,6 +46,7 @@ class MusicBlueprint(StrictModel):
     tempo_bpm: int = Field(default=96, ge=60, le=160)
     time_signature: Meter = Field(default_factory=Meter)
     key: Literal["C_major", "G_major", "F_major", "A_minor"] = "C_major"
+    genre: Literal["cinematic", "ambient", "classical", "electronic", "jazz"] = "cinematic"
     total_bars: int = Field(default=12, ge=1, le=64)
     sections: list[Section] = Field(min_length=1, max_length=16)
     tracks: list[TrackSpec] = Field(min_length=1, max_length=16)
