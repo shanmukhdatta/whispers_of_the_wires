@@ -74,3 +74,18 @@ def test_dashboard_can_boot_in_streamlit_testing(tmp_path, monkeypatch):
     at = AppTest.from_file(str(dashboard), default_timeout=30).run()
     assert not at.exception, [str(exc.message) for exc in at.exception]
     assert "Compose" in [str(item.value) for item in at.radio]
+
+
+def test_dashboard_form_really_generates_midi_and_wav(tmp_path, monkeypatch):
+    """A mentor can follow the intended form-to-music path without an API server."""
+    monkeypatch.setenv("WOW_DATA_DIR", str(tmp_path))
+    from streamlit.testing.v1 import AppTest
+
+    dashboard = Path(__file__).resolve().parents[2] / "mentor_dashboard.py"
+    at = AppTest.from_file(str(dashboard), default_timeout=45).run()
+    next(b for b in at.button if b.label.startswith("1. Analyze mood")).click().run()
+    assert not at.exception, [str(exc.message) for exc in at.exception]
+    next(b for b in at.button if b.label == "3. Compose music").click().run()
+    assert not at.exception, [str(exc.message) for exc in at.exception]
+    assert len(list((tmp_path / "artifacts").glob("*/composition.mid"))) == 1
+    assert len(list((tmp_path / "artifacts").glob("*/composition.wav"))) == 1
