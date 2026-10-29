@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
+from wow.audio_features import extract_music_features
 from wow.context import extract_context
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
@@ -370,3 +371,20 @@ def context_analysis(request: ContextAnalyzeRequest) -> dict:
         "method": "keyword_matching_with_explicit_user_override",
         "limitation": "No physical sensors, location services or weather APIs are used",
     }
+
+
+@app.get("/api/v1/compositions/{composition_id}/features")
+def get_music_features(composition_id: str, version: int = Query(default=1, ge=1)) -> dict:
+    manager = service()
+    job = manager.jobs.get(composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Completed composition not found")
+    try:
+        if version not in versions(manager.root, composition_id):
+            raise ValueError("Requested version does not exist")
+        folder = version_directory(manager.root, composition_id, version)
+        return extract_music_features(
+            folder / "composition.mid", folder / "composition.wav"
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
