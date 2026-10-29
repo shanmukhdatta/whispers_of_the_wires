@@ -8,6 +8,9 @@
 [Model choices](docs/MODEL_DECISIONS.md) ·
 [Research protocol](docs/RESEARCH_PROTOCOL.md) ·
 [PDF 30-day audit](docs/PDF_30_DAY_COVERAGE.md) ·
+[User manual](docs/USER_MANUAL.md) ·
+[Maintenance](docs/MAINTENANCE_AND_SUPPORT.md) ·
+[Submission checklist](docs/FINAL_SUBMISSION_CHECKLIST.md) ·
 [Classifier fine-tuning guide](docs/TRAINING_PROTOCOL.md)
 
 > **Development status:** Dashboard + local four-track composition workflow implemented and checked in GitHub CI. Pretrained MIDI-GPT inference on Kaggle, musical quality studies, and cross-device usability are **not yet verified**. Do not interpret this repository as a validated production music generator.
