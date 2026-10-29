@@ -24,7 +24,7 @@ verified results; this repository must not relabel them as completed evidence.
 | 10 | Backend/frontend integration, state, error handling, usability testing | Partial | API/Streamlit integration and SQLite; no recruited usability participants |
 | 11 | Mood wheel, context builder, advanced controls, interactive timeline/waveform | Partial | Context form, editable sections, waveform; wheel/interactive audio timeline missing |
 | 12 | Live adjustments, regenerate, undo/redo, favorites, onboarding, history | Partial | Seed variation, immutable version history, favorites and help; live audio editing missing |
-| 13 | MP3/WAV/MIDI, playlists, batch, loop/crossfade/volume/EQ/share | Partial | Export, playlist and batch; advanced playback and social sharing missing |
+| 13 | MP3/WAV/MIDI, playlists, batch, loop/crossfade/volume/EQ/share | Partial | Export, playlists, batch, off-line crossfade, volume and low-pass filter available; live looping and sharing missing |
 | 14 | Profiles, learned recommendations, analytics and privacy controls | Partial | Local data, feedback-based descriptive preferences and analytics; no model learning/profile auth |
 | 15 | All UI/backend tests, UAT scripts, accessibility and UX sign-off | Partial | CPU CI and mentor guide; human UAT and accessibility audit unverified |
 | 16 | Model fine-tuning, feedback-training, style transfer, collaborative filtering, continuation | Partial | Continuation/variation and optional text-classifier fine-tuning code; no real training results, music-model fine-tune or collaborative filtering |
@@ -32,7 +32,7 @@ verified results; this repository must not relabel them as completed evidence.
 | 18 | Unit/integration/performance tests, QA automation, error tracking | Partial | Automated tests and CI, objective metrics; no monitoring or regression benchmark suite |
 | 19 | User-testing setup, internal acceptance, guides, backup/recovery | Partial | Feedback forms, demo guide; no participant sessions or backup recovery exercise |
 | 20 | Fix based on feedback, UX polish, generation quality, security audit | Partial | Code lint/test fixes; no real feedback dataset or security audit |
-| 21 | Recruit and onboard testers; conduct sessions and analyze ratings | Unverified | Rating storage/protocol exists; no participants or user results |
+| 21 | Recruit and onboard testers; conduct sessions and analyze ratings | Unverified | Blinded-stimulus export and real-rating summary scripts exist; no participants or user results |
 | 22 | Iterate using actual user feedback; validate refined features | Unverified | No completed user study to justify refinements |
 | 23 | User guides/video/FAQ, API and architecture docs | Partial | Markdown README, mentor guide, API docs; no recorded video walkthrough |
 | 24 | Integration/latency/load/resource benchmarks, monitoring | Partial | CPU smoke and duration tracked; no load/resource measurements |

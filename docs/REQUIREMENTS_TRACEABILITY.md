@@ -28,8 +28,8 @@ Missing = not implemented.
 | Selective bar-level edits, versions and variations | Implemented; musical quality requires listening |
 | Re-generate and extend composition | Implemented with new seeds and additional last-section bars |
 | MIDI, WAV, MP3 exports | Implemented; MP3 requires installed FFmpeg |
-| Playlist crossfade, real-time parameter adjustment, live audio streaming | Missing; not feasible using intermittent Kaggle batch inference |
-| Scoring and user feedback | Implemented structural/audio constraint score and stored user ratings; no verified emotional accuracy |
+| Playlist crossfade, real-time parameter adjustment, live audio streaming | Non-destructive volume/tone preview and offline crossfade implemented; live streaming and live MIDI regeneration missing |
+| Scoring and user feedback | Objective metrics, real-rating storage and anonymous blinded listening-package scripts implemented; human pilot still pending |
 | Personalized suggestions | Partial: descriptive previous ratings, not a fine-tuned recommendation model |
 | Dataset preprocessing pipeline | Implemented: permitted MIDI/audio inspection, MIDI quantization, MFCC/spectral/chroma features |
 | Scalability (20 concurrent users), uptime, <5s cloud generation | Unverified and not defensible for a local single-user Kaggle prototype |

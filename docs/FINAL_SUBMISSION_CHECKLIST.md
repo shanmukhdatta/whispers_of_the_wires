@@ -21,7 +21,7 @@
 
 ## Manual evidence still required
 - [ ] Screen recording of Compose -> WAV playback -> edit -> Library.
-- [ ] Windows and mobile/browser player tests.
+- [ ] Windows and mobile/browser player tests; automated initial Streamlit render is covered in CI.
 - [ ] Successful Kaggle MIDI-GPT pretrained run with actual output and timing.
 - [ ] Real, permissioned text-label train/validation set and optional fine-tune
       output if training is within the agreed mentor scope.

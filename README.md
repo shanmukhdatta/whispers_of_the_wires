@@ -33,6 +33,7 @@ Example: `Anxious before an exam, then confident, finally relieved`.
 - Optional **MIDI-GPT yellow_medium** Kaggle batch integration (unverified until run).
 - MIDI-to-WAV preview, waveform, **MIDI + WAV + project ZIP** export.
 - MP3 export when **FFmpeg** is installed on the local machine.
+- Non-destructive volume and tone listening, and rendered crossfaded playlists.
 - Targeted note editing, previous versions, new-seed variations and extensions.
 - Saved compositions, favorites, playlists and locally stored listener ratings.
 - Objective duration/note/audio checks, plus MFCC/spectral centroid/rolloff/chroma descriptors,
@@ -73,6 +74,20 @@ streamlit run studio_v2.py
 generate 12 bars, play the WAV, create a variation, open the library and save
 favorite/playlist, then export MIDI and ZIP. This is a working **symbolic
 baseline**, not the trained neural model.
+
+## Direct genuine model inference and listener-study preparation
+
+After accepting the upstream checkpoint's separate research/education license
+and authenticating when necessary, `scripts/run_local_model_job.py` can run
+an existing pending MIDI-GPT job **locally** with the real pretrained engine.
+The Kaggle upload also supports a user-granted `HF_TOKEN` secret. Neither
+path is represented as a successful model experiment until it actually runs.
+
+The project can prepare blinded survey packets from generated compositions
+with `scripts/prepare_listener_study.py`. Real volunteer responses can be
+summarized using `scripts/analyze_listener_study.py`. See
+[Listener study](docs/LISTENER_STUDY.md) and
+[Playback DSP](docs/AUDIO_PLAYBACK.md). No simulated ratings are included.
 
 ## AI generation on Kaggle
 
