@@ -244,7 +244,7 @@ with tab_create:
                         "GET", f"/api/v1/compositions/{response['job_id']}/blueprint"
                     ).json()
                     st.info("New variation requested. Refresh to listen.")
-            st.subheader("Selective bar-level MIDI editing")
+                st.subheader("Selective bar-level MIDI editing")
                 active_bp = st.session_state.get("active_blueprint") or st.session_state.get("blueprint")
                 maximum = int(active_bp["total_bars"])
                 tracks = [t["id"] for t in active_bp["tracks"]]
