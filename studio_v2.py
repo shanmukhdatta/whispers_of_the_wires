@@ -181,15 +181,17 @@ with tab_create:
                         ).content
                         st.session_state["project_archive"] = (version, archive)
                 try:
-                mp3 = call(
-                    "GET", f"/api/v1/compositions/{job_id}/assets/composition.mp3",
-                    params={"version": version}, timeout=60,
-                ).content
-                st.download_button("Download MP3 (FFmpeg)", mp3,
-                                   file_name=f"wow-v{version}.mp3")
-            except requests.RequestException:
-                st.caption("MP3 needs FFmpeg installed locally; WAV and MIDI remain available.")
-            if "project_archive" in st.session_state:
+                    mp3 = call(
+                        "GET", f"/api/v1/compositions/{job_id}/assets/composition.mp3",
+                        params={"version": version}, timeout=60,
+                    ).content
+                    st.download_button(
+                        "Download MP3 (FFmpeg)", mp3,
+                        file_name=f"wow-v{version}.mp3",
+                    )
+                except requests.RequestException:
+                    st.caption("MP3 needs FFmpeg installed locally; WAV/MIDI are available.")
+                if "project_archive" in st.session_state:
                     archived_version, data = st.session_state["project_archive"]
                     if archived_version == version:
                         st.download_button(
