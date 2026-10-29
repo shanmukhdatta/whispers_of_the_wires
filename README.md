@@ -1,3 +1,30 @@
+# 🎼 Whispers of the Wires — Music Composition Studio
+
+**Mentor review candidate: `mentor-readiness-dashboard`.** The original
+eight-week proposal and the compressed six-week PDF have been audited.
+This branch adds a blue album-style dashboard, composition controls, saved
+library, favorites, playlists and dataset checks to the original six-phase
+codebase. The CPU pipeline is testable; actual pretrained Kaggle execution,
+fine-tuning and human listening claims are **not verified**.
+
+## Quick start (Python 3.11)
+```bash
+git checkout mentor-readiness-dashboard
+python -m venv .venv
+# Activate .venv for your operating system
+pip install -e ".[dev,studio]"
+pytest tests/phase_v2 -q
+python -m uvicorn wow.api:app --host 127.0.0.1 --port 8000
+# Second terminal:
+streamlit run studio_v2.py
+```
+
+Mentor documentation: [Requirements audit](docs/REQUIREMENTS_TRACEABILITY.md),
+[Demo script](docs/MENTOR_DEMO.md), [Report](docs/FINAL_PROJECT_REPORT.md),
+[Model decisions](docs/MODEL_DECISIONS.md).
+
+---
+
 # 🎵 Whispers of the Wires
 ### Emotion-Trajectory-Guided, Controllable AI Music Composition Studio
 
