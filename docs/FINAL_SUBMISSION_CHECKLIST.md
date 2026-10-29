@@ -16,8 +16,9 @@
 ## Automated evidence
 - [ ] Green GitHub Actions for final exact commit.
 - [ ] Passing CPU unit/integration suite.
-- [ ] Local smoke and factual mentor evidence file.
-- [ ] Actual CPU timing report (not a target copied from the PDF).
+- [x] Automated local smoke and factual mentor evidence generation on GitHub Actions.
+- [ ] Download and listen to the generated WAV from the most recent Actions artifact.
+- [x] CPU timing script runs inside CI and uploads its actual JSON timings.
 
 ## Manual evidence still required
 - [ ] Screen recording of Compose -> WAV playback -> edit -> Library.

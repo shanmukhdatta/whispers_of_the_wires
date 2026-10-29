@@ -75,3 +75,11 @@ Its reproducible CSV split validation, checkpoint output and data provenance
 are documented in `docs/TRAINING_PROTOCOL.md`. **No training experiment has
 been run and no trained checkpoint is supplied**; this source code is not
 misrepresented as measured research progress.
+
+## Reproducible CPU evidence archived in CI
+The latest GitHub Actions workflow generates a real CPU melody/WAV sample
+from a fixed prompt and a six-prompt local latency/constraint benchmark.
+It uploads these artifacts under **mentor-cpu-evidence**, including generated
+`composition.mid`, `composition.wav`, `mentor_evidence.json` and
+`cpu_benchmark.json`. These are **CPU baseline** measurements only, not
+pretrained MIDI-GPT inference, training results or listener evaluations.

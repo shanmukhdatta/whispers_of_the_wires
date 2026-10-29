@@ -25,4 +25,13 @@ jobs:
       - run: python -m pytest tests/test_studio_smoke.py -q
       - run: python scripts/local_smoke.py
       - run: python scripts/mentor_demo.py --output .wow_workspace/ci_mentor_demo
+      - run: python scripts/benchmark_cpu.py --output .wow_workspace/ci_mentor_demo/cpu_benchmark.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mentor-cpu-evidence
+          path: |
+            .wow_workspace/ci_mentor_demo/mentor_evidence.json
+            .wow_workspace/ci_mentor_demo/cpu_benchmark.json
+            .wow_workspace/ci_mentor_demo/artifacts/
+          if-no-files-found: error
       - run: ruff check src/wow tests/phase_v2
