@@ -197,7 +197,7 @@ with tab_create:
                 with st.form("feedback_form"):
                     mood_section = st.selectbox(
                         "Which emotional section?", [s["id"] for s in
-                                                     st.session_state["active_blueprint"]["sections"]]
+                                                     active_bp["sections"]]
                     )
                     mood_match = st.slider("Emotion match", 1, 5, 3)
                     musicality = st.slider("Musical coherence", 1, 5, 3)
@@ -217,7 +217,7 @@ with tab_create:
                     st.caption("Past mood preferences (descriptive, not model-trained)")
                     st.dataframe(preference["recommendations"], hide_index=True)
                 st.subheader("Selective bar-level MIDI editing")
-                active_bp = st.session_state.get("active_blueprint", blueprint)
+                active_bp = st.session_state.get("active_blueprint") or st.session_state.get("blueprint")
                 maximum = int(active_bp["total_bars"])
                 tracks = [t["id"] for t in active_bp["tracks"]]
                 track = st.selectbox("Track to modify", tracks)
