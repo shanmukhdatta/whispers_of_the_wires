@@ -3,19 +3,26 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Literal
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, Field
 
+from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
+from wow.audio_features import extract_music_features
+from wow.audio_processing import crossfade_playlist, transform_preview
+from wow.context import extract_context
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
 from wow.evaluation import FeedbackStore, ListenerRating, evaluate_files
 from wow.generation import GenerationService
+from wow.library import LibraryStore
 from wow.planning import PlanningRequest, build_blueprint
 from wow.preferences import recommend_moods
 from wow.project_archive import build_project_archive
+from wow.variations import VariationRequest, vary
 
 app = FastAPI(title="Whispers of the Wires API", version="0.4.0")
 
@@ -108,7 +115,7 @@ def edit(composition_id: str, request: EditRequest) -> dict:
 
 @app.get("/api/v1/compositions/{composition_id}/assets/{asset}")
 def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
-    if asset not in ("composition.mid", "composition.wav"):
+    if asset not in ("composition.mid", "composition.wav", "composition.mp3"):
         raise HTTPException(status_code=404, detail="Unsupported asset")
     job = service().jobs.get(composition_id)
     if job is None or job["state"] != "completed":
@@ -120,6 +127,13 @@ def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
     if version not in versions(service().root, composition_id):
         raise HTTPException(status_code=404, detail="Unknown version")
     path = folder / asset
+    if asset == "composition.mp3" and not path.is_file():
+        try:
+            convert_wav_to_mp3(folder / "composition.wav", path)
+        except CodecUnavailable as exc:
+            raise HTTPException(status_code=501, detail=str(exc)) from exc
+        except (OSError, ValueError, RuntimeError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
     return FileResponse(str(path), filename=asset)
@@ -204,3 +218,229 @@ def cancel_job(job_id: str) -> dict:
         request_id=job["request_id"], data={"reason": "Cancelled by user"},
     )
     return manager.jobs.get(job_id)
+
+class FavoriteRequest(BaseModel):
+    favorite: bool = True
+
+
+class PlaylistCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+
+
+class PlaylistItemRequest(BaseModel):
+    composition_id: str = Field(min_length=1, max_length=64)
+
+
+class SettingsRequest(BaseModel):
+    default_genre: Literal[
+        "cinematic", "ambient", "classical", "electronic", "jazz"
+    ] = "cinematic"
+    default_tempo: int = Field(default=96, ge=60, le=160)
+    listen_volume: int = Field(default=80, ge=0, le=100)
+    default_provider: Literal["rule_based", "midigpt"] = "rule_based"
+
+
+@app.get("/api/v1/library")
+def library(limit: int = Query(default=100, ge=1, le=250)) -> dict:
+    store = service()
+    starred = LibraryStore(store.root).favorites()
+    results = []
+    for job in store.jobs.list_jobs(limit=limit):
+        bp_path = store.root / "artifacts" / job["job_id"] / "blueprint.json"
+        if not bp_path.is_file():
+            continue
+        try:
+            bp = MusicBlueprint.model_validate_json(
+                bp_path.read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
+            continue
+        results.append({
+            **job, "prompt": bp.prompt, "genre": bp.genre,
+            "tempo_bpm": bp.tempo_bpm, "bars": bp.total_bars,
+            "moods": [s.mood for s in bp.sections],
+            "favorite": job["job_id"] in starred,
+        })
+    return {"items": results, "count": len(results)}
+
+
+@app.put("/api/v1/library/{composition_id}/favorite")
+def set_favorite(composition_id: str, request: FavoriteRequest) -> dict:
+    job = service().jobs.get(composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Completed composition not found")
+    return LibraryStore(service().root).favorite(composition_id, request.favorite)
+
+
+@app.get("/api/v1/playlists")
+def playlists() -> dict:
+    return {"items": LibraryStore(service().root).playlists()}
+
+
+@app.post("/api/v1/playlists", status_code=201)
+def create_playlist(request: PlaylistCreateRequest) -> dict:
+    return LibraryStore(service().root).create_playlist(request.name)
+
+
+@app.post("/api/v1/playlists/{playlist_id}/items")
+def playlist_add_item(playlist_id: str, request: PlaylistItemRequest) -> dict:
+    job = service().jobs.get(request.composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        LibraryStore(service().root).add_item(playlist_id, request.composition_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"playlist_id": playlist_id, "composition_id": request.composition_id}
+
+
+@app.delete("/api/v1/playlists/{playlist_id}/items/{composition_id}")
+def playlist_remove_item(playlist_id: str, composition_id: str) -> dict:
+    try:
+        LibraryStore(service().root).remove_item(playlist_id, composition_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return {"playlist_id": playlist_id, "composition_id": composition_id, "removed": True}
+
+
+@app.get("/api/v1/settings")
+def get_settings() -> dict:
+    return LibraryStore(service().root).settings()
+
+
+@app.put("/api/v1/settings")
+def update_settings(request: SettingsRequest) -> dict:
+    return LibraryStore(service().root).save_settings(request.model_dump())
+
+
+@app.get("/api/v1/compositions/{composition_id}/blueprint",
+         response_model=MusicBlueprint)
+def get_composition_blueprint(composition_id: str) -> MusicBlueprint:
+    job = service().jobs.get(composition_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        path = version_directory(service().root, composition_id, 1) / "blueprint.json"
+        return MusicBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+class BatchRequest(BaseModel):
+    blueprints: list[MusicBlueprint] = Field(min_length=1, max_length=4)
+
+
+@app.post("/api/v1/jobs/batch", status_code=202)
+def generate_batch(request: BatchRequest) -> dict:
+    # CPU batches are deliberately capped; Kaggle requests remain asynchronous.
+    results = [service().create(blueprint) for blueprint in request.blueprints]
+    return {"jobs": results, "count": len(results)}
+
+
+@app.post("/api/v1/compositions/{composition_id}/variations", status_code=202)
+def create_variation(composition_id: str, request: VariationRequest) -> dict:
+    manager = service()
+    current = manager.jobs.get(composition_id)
+    if current is None or current["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Original composition not found")
+    try:
+        from wow.editing import version_directory
+        path = version_directory(manager.root, composition_id, 1) / "blueprint.json"
+        blueprint = MusicBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+        proposed = vary(blueprint, request)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    job = manager.create(proposed)
+    return {**job, "source_composition_id": composition_id}
+
+
+class ContextAnalyzeRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=2000)
+    activity: str | None = Field(default=None, max_length=40)
+    weather: str | None = Field(default=None, max_length=40)
+    time_of_day: str | None = Field(default=None, max_length=40)
+
+
+@app.post("/api/v1/context")
+def context_analysis(request: ContextAnalyzeRequest) -> dict:
+    signals = extract_context(
+        request.prompt, activity=request.activity, weather=request.weather,
+        time_of_day=request.time_of_day,
+    )
+    return {
+        "context": signals.model_dump(),
+        "method": "keyword_matching_with_explicit_user_override",
+        "limitation": "No physical sensors, location services or weather APIs are used",
+    }
+
+
+@app.get("/api/v1/compositions/{composition_id}/features")
+def get_music_features(composition_id: str, version: int = Query(default=1, ge=1)) -> dict:
+    manager = service()
+    job = manager.jobs.get(composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Completed composition not found")
+    try:
+        if version not in versions(manager.root, composition_id):
+            raise ValueError("Requested version does not exist")
+        folder = version_directory(manager.root, composition_id, version)
+        return extract_music_features(
+            folder / "composition.mid", folder / "composition.wav"
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/compositions/{composition_id}/listen")
+def preview_with_controls(
+    composition_id: str, version: int = Query(default=1, ge=1),
+    volume_percent: int = Query(default=100, ge=0, le=200),
+    lowpass_hz: int | None = Query(default=None, ge=80, le=10000),
+) -> Response:
+    """Return a processed WAV preview, never modify the saved composition."""
+    manager = service()
+    job = manager.jobs.get(composition_id)
+    if not job or job["state"] != "completed":
+        raise HTTPException(status_code=404, detail="Composition not found")
+    if version not in versions(manager.root, composition_id):
+        raise HTTPException(status_code=404, detail="Version not found")
+    path = version_directory(manager.root, composition_id, version) / "composition.wav"
+    try:
+        payload = transform_preview(
+            path, gain=volume_percent / 100, lowpass_hz=lowpass_hz,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(content=payload, media_type="audio/wav")
+
+
+@app.get("/api/v1/playlists/{playlist_id}/listen")
+def playlist_listen(
+    playlist_id: str,
+    fade_seconds: float = Query(default=1.5, ge=0, le=8),
+    volume_percent: int = Query(default=100, ge=0, le=200),
+) -> Response:
+    manager = service()
+    playlists = LibraryStore(manager.root).playlists()
+    active = next((item for item in playlists if item["id"] == playlist_id), None)
+    if active is None:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+    if not active["items"]:
+        raise HTTPException(status_code=422, detail="Playlist has no compositions")
+    paths = []
+    for composition_id in active["items"]:
+        job = manager.jobs.get(composition_id)
+        if not job or job["state"] != "completed":
+            raise HTTPException(status_code=422, detail="Playlist has unavailable items")
+        paths.append(
+            version_directory(manager.root, composition_id, 1) / "composition.wav"
+        )
+    try:
+        mixed = crossfade_playlist(
+            paths, fade_seconds=fade_seconds, gain=volume_percent / 100,
+        )
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return Response(content=mixed, media_type="audio/wav", headers={
+        "Content-Disposition": 'attachment; filename="whispers-playlist.wav"',
+    })

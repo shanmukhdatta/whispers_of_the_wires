@@ -32,6 +32,18 @@ class JobStore:
                 (job_id, state, provider, request_id, json.dumps(data)),
             )
 
+    def list_jobs(self, limit: int = 100) -> list[dict[str, Any]]:
+        if not 1 <= limit <= 250:
+            raise ValueError("Job listing limit must be 1..250")
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, state, provider, request_id, data FROM jobs "
+                "ORDER BY rowid DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [{"job_id": row[0], "state": row[1], "provider": row[2],
+                 "request_id": row[3], "data": json.loads(row[4])}
+                for row in rows]
+
     def get(self, job_id: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(

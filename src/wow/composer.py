@@ -41,12 +41,22 @@ def compose_rule_based(blueprint: MusicBlueprint) -> pretty_midi.PrettyMIDI:
     bar_duration = beat * 4
     root = ROOTS[blueprint.key]
     scale = SCALES[blueprint.key]
-    chord_steps = [0, 3, 4, 0]
+    chord_steps = [0, 3, 4, 0] if blueprint.genre != "jazz" else [0, 4, 3, 1]
     for bar in range(blueprint.total_bars):
         sec = next(s for s in blueprint.sections
                    if s.start_bar <= bar < s.start_bar + s.bar_count)
         energy = (sec.arousal + 1) / 2
+        # Context influences the deterministic preview only when the user mentions
+        # or supplies it. This is not an empirical music-emotion predictor.
+        if blueprint.context.activity == "relax":
+            energy = max(0.0, energy - 0.25)
+        elif blueprint.context.activity == "exercise":
+            energy = min(1.0, energy + 0.20)
         velocity = int(46 + 52 * energy)
+        if blueprint.genre == "ambient":
+            velocity = max(30, velocity - 22)
+        elif blueprint.genre == "electronic":
+            velocity = min(120, velocity + 12)
         start = bar * bar_duration
         degree = chord_steps[bar % len(chord_steps)]
         chord_root = root + scale[degree] - 12
@@ -60,12 +70,15 @@ def compose_rule_based(blueprint: MusicBlueprint) -> pretty_midi.PrettyMIDI:
             _add(instruments["bass"], chord_root - 12, start,
                  start + bar_duration * 0.8, max(20, velocity - 8))
         if "melody" in instruments:
-            count = 4 if energy >= 0.65 else 2
+            count = (2 if blueprint.genre == "ambient" else
+                     4 if blueprint.genre in {"electronic", "jazz"} else
+                     4 if energy >= 0.65 else 2)
             step = bar_duration / count
             for n in range(count):
                 pitch = root + scale[(degree + n + rng.choice([-1, 0, 1])) % 7]
                 _add(instruments["melody"], pitch + 12, start + n * step,
-                     start + (n + 0.82) * step, velocity)
+                     start + (n + (0.55 if blueprint.genre == "electronic" else 0.82))
+                 * step, velocity)
         if "drums" in instruments:
             for n in range(4):
                 if n in (0, 2):

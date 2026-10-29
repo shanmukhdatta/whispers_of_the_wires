@@ -62,3 +62,53 @@ Invoke `POST /api/v1/jobs/{id}/import` with
   127.0.0.1; multiuser authorization isn't implemented.
 - Store Kaggle run URL, accelerator, checkpoint revision, duration, manifest,
   generated MIDI and observed errors for acceptance evidence.
+
+
+## Single-file Kaggle upload integrity
+
+The prepared `run.py` now **embeds** the requested `blueprint.json`, the
+MIDI-GPT generation runner, and the `wow` package as UTF-8 source data. It
+reconstructs them in `/kaggle/working` before importing or running the model.
+This is necessary because the Kaggle `kernel-metadata.json` `code_file`
+specifies one uploaded code script, not arbitrary sibling files. Earlier
+versions of this bridge could fail with a missing blueprint/import.
+
+The `push` CLI explicitly requests a `NvidiaTeslaT4` accelerator, subject
+to the user's Kaggle quota. The script itself is private and uses the public
+MIDI-GPT model from its upstream publisher; model weights are covered by a
+separate noncommercial research/education license.
+
+### Offline packaging verification (no GPU or account needed)
+
+Prepare a pending job, then execute its generated script in extraction-only
+mode to verify that all runtime files can be reconstructed:
+
+```bash
+WOW_KAGGLE_WORKING=/tmp/wow-kaggle-test \
+  python .wow_workspace/kaggle_jobs/<JOB_UUID>/run.py --extract-only
+```
+
+This checks packaging only. It cannot establish actual checkpoint
+compatibility, model quality or GPU runtime success.
+
+## Local direct pretrained-model execution (no Kaggle required)
+
+If you have accepted the checkpoint's separate research license, install
+`pip install "midigpt[inference]"` and authenticate to Hugging Face as
+required for gated weights. Then generate a `midigpt` pending job in the UI
+and run:
+
+```bash
+python scripts/run_local_model_job.py <PENDING_JOB_UUID>
+```
+
+This invokes the **actual** upstream inference engine in a subprocess, imports
+the checksum-verified MIDI, and renders the audio locally. There is no silent
+rule-based substitute. CPU execution may require substantial memory/time.
+
+**Kaggle secret:** The generated private Kaggle script can read a user-granted
+`HF_TOKEN` via Kaggle's `UserSecretsClient`. Accept the license and
+explicitly grant the secret in your own Kaggle account if the checkpoint is
+gated; neither token nor license consent is embedded in Git.
+
+A CLI path being implemented does **not** constitute a verified model run.
