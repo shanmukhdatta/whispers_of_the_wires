@@ -73,7 +73,7 @@ flowchart TD
 | Persistence | SQLite + checksummed filesystem artifacts | No Redis or always-on infrastructure required |
 | Verification | pytest, Ruff, optional mypy, GitHub Actions | No model-download requirement in CI |
 
-**Licenses:** repository MIT covers only code owned here. Checkpoint, training music, SoundFont and other third-party licenses apply **separately**. Published MIDI-GPT weights are labeled CC BY-NC 4.0; do not assume unrestricted commercial rights. Never upload copyrighted music without permission. No guaranteed copyright-free output claims.
+**Licenses:** repository MIT covers only code owned here. Checkpoint, training music, SoundFont and other third-party licenses apply **separately**. The official MIDI-GPT repository currently describes its pretrained weights under the Metacreation Non-Commercial Research License for research and education; review the checkpoint/model-card terms before use. Do not assume commercial rights. Never upload copyrighted music without permission. No guaranteed copyright-free output claims.
 
 ## System boundaries and contracts
 All exchanges use versioned Pydantic/JSON contracts; reject malformed requests explicitly.
