@@ -1,6 +1,6 @@
 """MIDI/audio preprocessing and optional system encoder contract tests."""
-import soundfile as sf
 import pytest
+import soundfile as sf
 
 from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
 from wow.composer import compose_rule_based, save_midi
