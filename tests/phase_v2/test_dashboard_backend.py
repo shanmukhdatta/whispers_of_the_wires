@@ -1,8 +1,9 @@
 """Mentor dashboard backend: library, playlists, settings and instrument/genre controls."""
 from fastapi.testclient import TestClient
+
 from wow.api import app
-from wow.planning import PlanningRequest, build_blueprint
 from wow.composer import compose_rule_based
+from wow.planning import PlanningRequest, build_blueprint
 
 
 def test_genres_and_custom_instruments_are_real_controls():
