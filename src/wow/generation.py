@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import shutil
 import uuid
-from time import perf_counter
 from pathlib import Path
+from time import perf_counter
 
 from wow.artifacts import verify_manifest, write_manifest
 from wow.composer import compose_rule_based, save_midi, validate_midi
