@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
+from wow.context import extract_context
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
@@ -349,3 +350,23 @@ def create_variation(composition_id: str, request: VariationRequest) -> dict:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     job = manager.create(proposed)
     return {**job, "source_composition_id": composition_id}
+
+
+class ContextAnalyzeRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=2000)
+    activity: str | None = Field(default=None, max_length=40)
+    weather: str | None = Field(default=None, max_length=40)
+    time_of_day: str | None = Field(default=None, max_length=40)
+
+
+@app.post("/api/v1/context")
+def context_analysis(request: ContextAnalyzeRequest) -> dict:
+    signals = extract_context(
+        request.prompt, activity=request.activity, weather=request.weather,
+        time_of_day=request.time_of_day,
+    )
+    return {
+        "context": signals.model_dump(),
+        "method": "keyword_matching_with_explicit_user_override",
+        "limitation": "No physical sensors, location services or weather APIs are used",
+    }

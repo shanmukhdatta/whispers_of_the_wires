@@ -46,6 +46,12 @@ def compose_rule_based(blueprint: MusicBlueprint) -> pretty_midi.PrettyMIDI:
         sec = next(s for s in blueprint.sections
                    if s.start_bar <= bar < s.start_bar + s.bar_count)
         energy = (sec.arousal + 1) / 2
+        # Context influences the deterministic preview only when the user mentions
+        # or supplies it. This is not an empirical music-emotion predictor.
+        if blueprint.context.activity == "relax":
+            energy = max(0.0, energy - 0.25)
+        elif blueprint.context.activity == "exercise":
+            energy = min(1.0, energy + 0.20)
         velocity = int(46 + 52 * energy)
         if blueprint.genre == "ambient":
             velocity = max(30, velocity - 22)

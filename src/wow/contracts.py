@@ -15,6 +15,15 @@ class Meter(StrictModel):
     denominator: Literal[4] = 4
 
 
+class ContextInfo(StrictModel):
+    """Only reported or text-mentioned context; never inferred from device location."""
+
+    activity: str | None = Field(default=None, max_length=40)
+    weather: str | None = Field(default=None, max_length=40)
+    time_of_day: str | None = Field(default=None, max_length=40)
+    source: Literal["explicit", "prompt", "unspecified"] = "unspecified"
+
+
 class Section(StrictModel):
     id: str = Field(min_length=1, max_length=20)
     start_bar: int = Field(ge=0)
@@ -22,6 +31,7 @@ class Section(StrictModel):
     mood: str = Field(min_length=1, max_length=80)
     valence: float = Field(ge=-1, le=1)
     arousal: float = Field(ge=-1, le=1)
+    dominance: float = Field(default=0.0, ge=-1, le=1)
 
 
 class TrackSpec(StrictModel):
@@ -47,6 +57,7 @@ class MusicBlueprint(StrictModel):
     time_signature: Meter = Field(default_factory=Meter)
     key: Literal["C_major", "G_major", "F_major", "A_minor"] = "C_major"
     genre: Literal["cinematic", "ambient", "classical", "electronic", "jazz"] = "cinematic"
+    context: ContextInfo = Field(default_factory=ContextInfo)
     total_bars: int = Field(default=12, ge=1, le=64)
     sections: list[Section] = Field(min_length=1, max_length=16)
     tracks: list[TrackSpec] = Field(min_length=1, max_length=16)
