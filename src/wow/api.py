@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
+from wow.audio_export import CodecUnavailable, convert_wav_to_mp3
 from wow.contracts import MusicBlueprint
 from wow.editing import EditRequest, create_edit_version, version_directory, versions
 from wow.emotion import analyze_prompt
@@ -110,7 +111,7 @@ def edit(composition_id: str, request: EditRequest) -> dict:
 
 @app.get("/api/v1/compositions/{composition_id}/assets/{asset}")
 def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
-    if asset not in ("composition.mid", "composition.wav"):
+    if asset not in ("composition.mid", "composition.wav", "composition.mp3"):
         raise HTTPException(status_code=404, detail="Unsupported asset")
     job = service().jobs.get(composition_id)
     if job is None or job["state"] != "completed":
@@ -122,6 +123,13 @@ def download(composition_id: str, asset: str, version: int = 1) -> FileResponse:
     if version not in versions(service().root, composition_id):
         raise HTTPException(status_code=404, detail="Unknown version")
     path = folder / asset
+    if asset == "composition.mp3" and not path.is_file():
+        try:
+            convert_wav_to_mp3(folder / "composition.wav", path)
+        except CodecUnavailable as exc:
+            raise HTTPException(status_code=501, detail=str(exc)) from exc
+        except (OSError, ValueError, RuntimeError) as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     if not path.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
     return FileResponse(str(path), filename=asset)

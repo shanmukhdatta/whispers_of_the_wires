@@ -180,7 +180,16 @@ with tab_create:
                             params={"version": version}, timeout=60,
                         ).content
                         st.session_state["project_archive"] = (version, archive)
-                if "project_archive" in st.session_state:
+                try:
+                mp3 = call(
+                    "GET", f"/api/v1/compositions/{job_id}/assets/composition.mp3",
+                    params={"version": version}, timeout=60,
+                ).content
+                st.download_button("Download MP3 (FFmpeg)", mp3,
+                                   file_name=f"wow-v{version}.mp3")
+            except requests.RequestException:
+                st.caption("MP3 needs FFmpeg installed locally; WAV and MIDI remain available.")
+            if "project_archive" in st.session_state:
                     archived_version, data = st.session_state["project_archive"]
                     if archived_version == version:
                         st.download_button(
@@ -197,7 +206,7 @@ with tab_create:
                 with st.form("feedback_form"):
                     mood_section = st.selectbox(
                         "Which emotional section?", [s["id"] for s in
-                                                     active_bp["sections"]]
+                                                     (st.session_state.get("active_blueprint") or st.session_state.get("blueprint"))["sections"]]
                     )
                     mood_match = st.slider("Emotion match", 1, 5, 3)
                     musicality = st.slider("Musical coherence", 1, 5, 3)
