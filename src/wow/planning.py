@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -14,7 +15,8 @@ class PlanningRequest(BaseModel):
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     tempo_bpm: int = Field(default=96, ge=60, le=160)
     total_bars: int = Field(default=12, ge=3, le=64)
-    key: str = "C_major"
+    key: Literal["C_major", "G_major", "F_major", "A_minor"] = "C_major"
+    style: Literal["cinematic", "ambient", "lofi", "upbeat", "classical"] = "cinematic"
     moods: list[str] | None = Field(default=None, min_length=1, max_length=4)
     seed: int = Field(default=42, ge=0, le=2**32 - 1)
 
@@ -52,6 +54,7 @@ def build_blueprint(request: PlanningRequest) -> MusicBlueprint:
         tempo_bpm=request.tempo_bpm,
         total_bars=request.total_bars,
         key=request.key,
+        style=request.style,
         sections=to_sections(signals, request.total_bars),
         tracks=[
             TrackSpec(id="melody", program=0),
