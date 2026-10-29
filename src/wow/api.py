@@ -299,3 +299,16 @@ def get_settings() -> dict:
 @app.put("/api/v1/settings")
 def update_settings(request: SettingsRequest) -> dict:
     return LibraryStore(service().root).save_settings(request.model_dump())
+
+
+@app.get("/api/v1/compositions/{composition_id}/blueprint",
+         response_model=MusicBlueprint)
+def get_composition_blueprint(composition_id: str) -> MusicBlueprint:
+    job = service().jobs.get(composition_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Composition not found")
+    try:
+        path = version_directory(service().root, composition_id, 1) / "blueprint.json"
+        return MusicBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

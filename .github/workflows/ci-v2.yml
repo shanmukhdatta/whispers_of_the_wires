@@ -1,7 +1,7 @@
 name: Whispers V2 CI
 on:
   push:
-    branches: ["original", "phase-**", "all-phases-complete"]
+    branches: ["original", "phase-**", "all-phases-complete", "mentor-readiness-dashboard"]
   pull_request:
     branches: ["original", "main", "phase-**", "all-phases-complete"]
 permissions:
