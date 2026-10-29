@@ -80,14 +80,20 @@ def compose_rule_based(blueprint: MusicBlueprint) -> pretty_midi.PrettyMIDI:
                 pitch = root + scale[(degree + n + rng.choice([-1, 0, 1])) % 7]
                 _add(instruments["melody"], pitch + 12, start + n * step,
                      start + (n + 0.82) * step, velocity)
-        if "drums" in instruments and blueprint.style not in ("ambient", "classical"):
-            for n in range(4):
-                if n in (0, 2):
-                    _add(instruments["drums"], 36, start + n * beat,
-                         start + n * beat + 0.08, velocity)
-                if n in (1, 3) and (energy >= 0.45 or blueprint.style == "upbeat"):
-                    _add(instruments["drums"], 38, start + n * beat,
-                         start + n * beat + 0.08, velocity - 10)
+        if "drums" in instruments:
+            if blueprint.style in ("ambient", "classical"):
+                # Minimal percussion keeps four named MIDI tracks after serialization.
+                _add(instruments["drums"], 36, start, start + 0.06, 8)
+            else:
+                for n in range(4):
+                    if n in (0, 2):
+                        _add(instruments["drums"], 36, start + n * beat,
+                             start + n * beat + 0.08, velocity)
+                    if n in (1, 3) and (
+                        energy >= 0.45 or blueprint.style == "upbeat"
+                    ):
+                        _add(instruments["drums"], 38, start + n * beat,
+                             start + n * beat + 0.08, velocity - 10)
     midi.instruments = list(instruments.values())
     return midi
 
