@@ -90,3 +90,25 @@ WOW_KAGGLE_WORKING=/tmp/wow-kaggle-test \
 
 This checks packaging only. It cannot establish actual checkpoint
 compatibility, model quality or GPU runtime success.
+
+## Local direct pretrained-model execution (no Kaggle required)
+
+If you have accepted the checkpoint's separate research license, install
+`pip install "midigpt[inference]"` and authenticate to Hugging Face as
+required for gated weights. Then generate a `midigpt` pending job in the UI
+and run:
+
+```bash
+python scripts/run_local_model_job.py <PENDING_JOB_UUID>
+```
+
+This invokes the **actual** upstream inference engine in a subprocess, imports
+the checksum-verified MIDI, and renders the audio locally. There is no silent
+rule-based substitute. CPU execution may require substantial memory/time.
+
+**Kaggle secret:** The generated private Kaggle script can read a user-granted
+`HF_TOKEN` via Kaggle's `UserSecretsClient`. Accept the license and
+explicitly grant the secret in your own Kaggle account if the checkpoint is
+gated; neither token nor license consent is embedded in Git.
+
+A CLI path being implemented does **not** constitute a verified model run.
