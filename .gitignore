@@ -81,3 +81,6 @@ dump.rdb
 # Licensed/private dataset splits and trained checkpoints
 training_output/
 private_training_data/
+
+# Consent-based study packets and private blinding keys
+study_output/
