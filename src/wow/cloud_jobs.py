@@ -80,16 +80,41 @@ def prepare(root: Path, job_id: str, username: str, slug: str = "wow-music") -> 
     package_dir.mkdir(parents=True)
     for module in sorted((repo / "src" / "wow").glob("*.py")):
         shutil.copyfile(module, package_dir / module.name)
-    (target / "run.py").write_text(
-        '"""Private Kaggle kernel: install dependencies and run a single blueprint."""\n'
-        "import subprocess\nimport sys\nfrom pathlib import Path\n"
+    # Kaggle's CLI uploads the designated code file, not arbitrary sibling
+    # source files. Embed an auditable UTF-8 copy of all runtime code and the
+    # request into that one code file; keep the originals beside it for review.
+    payload: dict[str, str] = {
+        "blueprint.json": (target / "blueprint.json").read_text(encoding="utf-8"),
+        "batch_generate.py": (target / "batch_generate.py").read_text(encoding="utf-8"),
+    }
+    for module in sorted(package_dir.glob("*.py")):
+        payload["src/wow/" + module.name] = module.read_text(encoding="utf-8")
+    # JSON encoded twice gives a safe Python string literal. The script can
+    # reconstruct its resources on an isolated Kaggle worker without extra
+    # data-source attachments, external GitHub cloning, or credentials.
+    quoted_json = json.dumps(json.dumps(payload, ensure_ascii=True))
+    bootstrap = (
+        '"""Private single-file Kaggle MIDI-GPT job. Embedded files are local code."""\n'
+        "import json\nimport os\nimport subprocess\nimport sys\n"
+        "from pathlib import Path\n"
+        "work = Path(os.environ.get('WOW_KAGGLE_WORKING', '/kaggle/working'))\n"
+        "work.mkdir(parents=True, exist_ok=True)\n"
+        f"payload = json.loads({quoted_json})\n"
+        "for rel, body in payload.items():\n"
+        "    dest = work / rel\n"
+        "    dest.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    dest.write_text(body, encoding='utf-8')\n"
+        "print('Restored isolated music job:', len(payload), 'source/input files')\n"
+        "if '--extract-only' in sys.argv:\n"
+        "    sys.exit(0)\n"
+        "sys.path.insert(0, str(work / 'src'))\n"
+        "sys.path.insert(0, str(work))\n"
         "subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', "
         "'midigpt[inference]', 'pretty_midi>=0.2.10,<1', 'pydantic>=2.8,<3'])\n"
-        "sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))\n"
         "from batch_generate import main\n"
-        "main()\n",
-        encoding="utf-8",
+        "main()\n"
     )
+    (target / "run.py").write_text(bootstrap, encoding="utf-8")
     metadata = {
         "id": f"{username}/{slug}", "title": f"Whispers {job_id[:8]}",
         "code_file": "run.py", "language": "python", "kernel_type": "script",
@@ -108,7 +133,7 @@ def push(bundle: Path) -> str:
     metadata = json.loads((bundle / "kernel-metadata.json").read_text(encoding="utf-8"))
     if metadata.get("is_private") is not True:
         raise ValueError("Refusing to push nonprivate kernel")
-    _run_cli("push", "-p", str(bundle))
+    _run_cli("push", "-p", str(bundle), "--accelerator", "NvidiaTeslaT4")
     return str(metadata["id"])
 
 
