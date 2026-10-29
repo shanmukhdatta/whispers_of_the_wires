@@ -2,6 +2,7 @@
 import csv
 import json
 import zipfile
+from pathlib import Path
 
 import pytest
 
@@ -30,7 +31,7 @@ def test_real_ratings_analyzed_with_duplicate_rejection(tmp_path):
     service.create(default_blueprint("Sorrow then peace"))
     service.create(default_blueprint("Excited then joyful"))
     result = build_study(service.root, tmp_path / "study")
-    key = json.loads(open(result["private_key"], encoding="utf-8").read())
+    key = json.loads(Path(result["private_key"]).read_text(encoding="utf-8"))
     data = tmp_path / "genuine_ratings.csv"
     with data.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
